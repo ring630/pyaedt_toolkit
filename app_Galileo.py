@@ -12,9 +12,9 @@ Preparation
 """
 
 # specifiy project folder, edb folder and edbversion
-app = PowerTree(project_dir=r"example_project",
-                aedb_dir_name="Galileo.aedb",
-                edbversion="2021.1"
+app = PowerTree(project_dir=r"example_project2",
+                layout_file_name="Galileo.brd",
+                edbversion="2021.2"
                 )
 
 # specify global reference net name

@@ -34,13 +34,13 @@ class PowerTree:
                     }
 
     def __init__(self, project_dir,
-                 aedb_dir_name,
+                 layout_file_name,
                  local_power_lib_fname=None,
-                 edbversion="2021.1"):
+                 edbversion="2021.2"):
 
-        self.project_dir = project_dir
-        self.edb_dir = os.path.join(self.project_dir, "EDB")
-        self.aedb_dir = os.path.join(self.edb_dir, aedb_dir_name)
+        self.project_dir = os.path.abspath(project_dir)
+        self.layout_dir = os.path.join(self.project_dir, "layout")
+        self.layout_fpath = os.path.join(self.layout_dir, layout_file_name)
         self.config_file = os.path.join(self.project_dir, "config.json")
         self.log_dir = os.path.join(self.project_dir, "log")
         self.result_dir = os.path.join(self.project_dir, "result")
@@ -49,8 +49,8 @@ class PowerTree:
 
         if not os.path.isdir(self.project_dir):
             os.mkdir(self.project_dir)
-        if not os.path.isdir(self.edb_dir):
-            os.mkdir(self.edb_dir)
+        if not os.path.isdir(self.layout_dir):
+            os.mkdir(self.layout_dir)
         if not os.path.isdir(self.log_dir):
             os.mkdir(self.log_dir)
         if not os.path.isdir(self.result_dir):
@@ -73,9 +73,9 @@ class PowerTree:
     def define_reference_net(self, reference_net):
         self.REF_NET = reference_net
 
-    def Initialize_EDB(self, edbversion="2021.1"):
+    def Initialize_EDB(self):
         start = time.time()
-        self.edb = Edb(edbpath=self.aedb_dir, edbversion=edbversion)
+        self.edb = Edb(edbpath=self.layout_fpath, edbversion=self.edbversion)
         self.EDB_OPEN = True
 
         self.edb_components = self.edb.core_components.components
@@ -180,7 +180,7 @@ class PowerTree:
         df.to_csv(os.path.join(self.log_dir, "comp_wo_current.csv"))
 
     def config_dcir(self):
-
+        neg_term_list = []
         for powertree_id, complist in self.POWER_TREE.items():
 
             vrm, vrm_netname = powertree_id.split("-")
@@ -194,6 +194,7 @@ class PowerTree:
                                                        phase_value=0,
                                                        source_name=powertree_id
                                                        )
+            neg_term_list.append(powertree_id)
 
             for row, sink in complist[complist.component_type == "Sink"].iterrows():
                 refdes, net_name = sink["refdes"], sink["net_name"]
@@ -206,7 +207,10 @@ class PowerTree:
                                                            phase_value=0,
                                                            source_name=comp_id)
 
-        self.add_siwave_dc_analysis()
+        settings = self.edb.core_siwave.get_siwave_dc_setup_template()
+        settings.name = "DC_setup"
+        settings.neg_term_to_ground = neg_term_list
+        self.add_siwave_dc_analysis(settings)
         self.save_edb_as(self.configured_edb_path)
 
     def add_siwave_dc_analysis(self, accuracy_level=1):
@@ -248,10 +252,10 @@ class PowerTree:
         self.h3d.close_project()
 
     def load_result(self, fpath=None):
-
+        layout_fpath = os.path.basename(self.layout_fpath).replace(".aedb", "").replace(".brd", "").replace(".tgz", "")
         if not fpath:
             dcir_result_fpath = os.path.join(self.aedt_results_dir,
-                                             os.path.basename(self.aedb_dir).replace(".aedb", ""),
+                                             layout_fpath,
                                              "DV3_S2_V0",
                                              os.path.basename(self.configured_edb_path).replace("aedb", "ced")
                                              )
