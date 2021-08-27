@@ -179,8 +179,9 @@ class PowerTree:
         df.drop_duplicates()
         df.to_csv(os.path.join(self.log_dir, "comp_wo_current.csv"))
 
-    def config_dcir(self):
+    def config_dcir(self, cutout=True):
         neg_term_list = []
+        cutout_signal_list = []
         for powertree_id, complist in self.POWER_TREE.items():
 
             vrm, vrm_netname = powertree_id.split("-")
@@ -195,6 +196,7 @@ class PowerTree:
                                                        source_name=powertree_id
                                                        )
             neg_term_list.append(powertree_id)
+            cutout_signal_list.append(vrm_netname)
 
             for row, sink in complist[complist.component_type == "Sink"].iterrows():
                 refdes, net_name = sink["refdes"], sink["net_name"]
@@ -206,6 +208,11 @@ class PowerTree:
                                                            current_value=sink["current"],
                                                            phase_value=0,
                                                            source_name=comp_id)
+                cutout_signal_list.append(net_name)
+
+        if cutout:
+            self.edb.create_cutout(signal_list=cutout_signal_list, reference_list=[self.REF_NET],
+                                   extent_type="Bounding", expansion_size=0.01)
 
         settings = self.edb.core_siwave.get_siwave_dc_setup_template()
         settings.name = "DC_setup"

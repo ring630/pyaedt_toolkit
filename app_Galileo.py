@@ -43,7 +43,7 @@ app.power_tree_cleaning()
 1: "Only export DCIR project"
 2: "Simulate in Non-graphic mode"
 """
-mode = 2
+mode = 1
 
 if mode == 0:
     # extracted power trees are stored under project_folder/result/[datetime]/.
@@ -63,7 +63,7 @@ if mode == 0:
 
 elif mode == 1:
     # configure EDB for DCIR analysis
-    app.config_dcir()
+    app.config_dcir(cutout=True)
     # create aedt project from EDB without solving
     app.create_aedt_project(solve=False)
 
@@ -77,7 +77,7 @@ elif mode == 1:
 
 elif mode == 2:
     # configure EDB for DCIR analysis
-    app.config_dcir()
+    app.config_dcir(cutout=True)
     # create aedt project from EDB and solve in non-graphic mode
     app.create_aedt_project(solve=True)
     # read results and fill voltage information into esult/[datetime]/
