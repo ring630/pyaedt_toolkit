@@ -13,8 +13,8 @@ Preparation
 
 # specifiy project folder, edb folder and edbversion
 app = PowerTree(project_dir=r"example_project",
-                aedb_dir_name="Galileo.aedb",
-                edbversion="2021.1"
+                aedb_dir_name="Galileo_2021R2.aedb",
+                edbversion="2021.2"
                 )
 
 # specify global reference net name
@@ -43,7 +43,7 @@ app.power_tree_cleaning()
 1: "Only export DCIR project"
 2: "Simulate in Non-graphic mode"
 """
-mode = 2
+mode = 1
 
 if mode == 0:
     # extracted power trees are stored under project_folder/result/[datetime]/.

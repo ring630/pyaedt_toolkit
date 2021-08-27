@@ -33,13 +33,21 @@ class PowerTree:
                     "2022.1": "ANSYSEM_ROOT221",
                     }
 
+    @staticmethod
+    def odb_2_edb():
+
+        pass
+
+
+
     def __init__(self, project_dir,
                  aedb_dir_name,
+                 edbversion,
                  local_power_lib_fname=None,
-                 edbversion="2021.1"):
+                 ):
 
         self.project_dir = project_dir
-        self.edb_dir = os.path.join(self.project_dir, "EDB")
+        self.edb_dir = os.path.join(self.project_dir, "layout")
         self.aedb_dir = os.path.join(self.edb_dir, aedb_dir_name)
         self.config_file = os.path.join(self.project_dir, "config.json")
         self.log_dir = os.path.join(self.project_dir, "log")
@@ -73,9 +81,9 @@ class PowerTree:
     def define_reference_net(self, reference_net):
         self.REF_NET = reference_net
 
-    def Initialize_EDB(self, edbversion="2021.1"):
+    def Initialize_EDB(self):
         start = time.time()
-        self.edb = Edb(edbpath=self.aedb_dir, edbversion=edbversion)
+        self.edb = Edb(edbpath=self.aedb_dir, edbversion=self.edbversion)
         self.EDB_OPEN = True
 
         self.edb_components = self.edb.core_components.components
@@ -181,6 +189,7 @@ class PowerTree:
 
     def config_dcir(self):
 
+        neg_term_list = []
         for powertree_id, complist in self.POWER_TREE.items():
 
             vrm, vrm_netname = powertree_id.split("-")
@@ -194,6 +203,7 @@ class PowerTree:
                                                        phase_value=0,
                                                        source_name=powertree_id
                                                        )
+            neg_term_list.append(powertree_id)
 
             for row, sink in complist[complist.component_type == "Sink"].iterrows():
                 refdes, net_name = sink["refdes"], sink["net_name"]
@@ -206,7 +216,9 @@ class PowerTree:
                                                            phase_value=0,
                                                            source_name=comp_id)
 
-        self.add_siwave_dc_analysis()
+        settings = self.edb.core_siwave.get_siwave_dc_setup_template()
+        settings.neg_term_to_ground = neg_term_list
+        self.add_siwave_dc_analysis(settings)
         self.save_edb_as(self.configured_edb_path)
 
     def add_siwave_dc_analysis(self, accuracy_level=1):
