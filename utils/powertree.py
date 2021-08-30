@@ -173,8 +173,8 @@ class PowerTree:
 
     def export_component_wo_current(self):
         df = pd.concat(self.POWER_TREE.values())
-        df = df[df["voltage"] != " "]
-        df = df[["component_partname", "pin_list", "current"]]
+        df = df[df["voltage"] == " "]
+        df = df[["refdes", "component_partname", "pin_list", "current"]]
         df = df[df["current"] == " "]
         df.drop_duplicates()
         df.to_csv(os.path.join(self.log_dir, "comp_wo_current.csv"))
@@ -214,10 +214,11 @@ class PowerTree:
             self.edb.create_cutout(signal_list=cutout_signal_list, reference_list=[self.REF_NET],
                                    extent_type="Bounding", expansion_size=0.01)
 
-        settings = self.edb.core_siwave.get_siwave_dc_setup_template()
+        """        settings = self.edb.core_siwave.get_siwave_dc_setup_template()
         settings.name = "DC_setup"
         settings.neg_term_to_ground = neg_term_list
-        self.add_siwave_dc_analysis(settings)
+        self.add_siwave_dc_analysis(settings)"""
+        self.add_siwave_dc_analysis()
         self.save_edb_as(self.configured_edb_path)
 
     def add_siwave_dc_analysis(self, accuracy_level=1):
