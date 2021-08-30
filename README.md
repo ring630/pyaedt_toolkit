@@ -1,6 +1,8 @@
 # Introduction 
 The purpose of the project is to automate DCIR analysis worflow. Power tree and its associated components are extracted based on user provided VRM refdes and its output net name. The extraction searches components through serial inductors.
 
+# 
+    Cadence dependency
 # Getting Started
 1. download and install Anaconda3. https://www.anaconda.com/products/individual
 2. open anaconda prompt to create a virtual environment dcir_automatio and install PyAEDT
