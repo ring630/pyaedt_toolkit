@@ -11,6 +11,8 @@ The purpose of the project is to automate DCIR analysis worflow. Power tree and 
     
     conda activate dcir_automation                            #activate the new environement
    
+    pip install pyvista                                       #install pyvista
+    
     pip install pyaedt                                        #install PyAEDT
 3. Download dcir_automation code and unzip it to local disk. For example C:\Users\hzhou\OneDrive - ANSYS, Inc\PyCharm_project\DCIR_Automation-main
 4. download and install pycharm. https://www.jetbrains.com/pycharm/download/#section=windows
