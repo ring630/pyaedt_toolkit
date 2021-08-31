@@ -34,10 +34,19 @@ class Configuration:
                         }
         return ANSYSEM_ROOT[self.edb_version]
 
+    @property
+    def layout_file_path(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        return os.path.join(os.path.abspath(""), "layout_database", self.layout_file_name)
+
     def __init__(self):
         self.edb_version = "2021.2"
 
-        self.layout_file_name = ""
+        self.layout_file_name = "Galileo.brd"
         self.current_consumption_lib_file = "current_consumption_lib.json"
         self.reference_net_name = "GND"
 
@@ -69,12 +78,57 @@ class Configuration:
 
 class Source:
 
-    def __init__(self, refdes, voltage, output_net_name, output_inductor_refdes):
-        self.refdes = refdes
+    def __init__(self, vrm_refdes, voltage, output_net_name="", output_inductor_refdes=""):
+        self.vrm_refdes = vrm_refdes
         self.voltage = voltage
         self.output_net_name = output_net_name
         self.output_inductor_refdes = output_inductor_refdes
+        self.power_net_name = ""
 
+class SourceConfig:
+
+    def __init__(self, source_list=[]):
+        """
+
+        :param source_list:
+        :type source_list:
+        """
+        self.source_cfg = []
+        if isinstance(source_list, list):
+            self.source_cfg.extend(source_list)
+        else:
+            self.source_cfg.append(source_list)
+
+    def export_source_cfg(self, path=""):
+        """
+
+        :return:
+        :rtype:
+        """
+        source_cfg = {"sources":[]}
+        for i in self.source_cfg:
+            source_cfg["sources"].append(i.__dict__)
+
+        json_obj = json.dumps(source_cfg, indent=4)
+        fpath = os.path.join(path, "source_cfg.json")
+        with open(fpath, "w", encoding='utf-8') as f:
+            f.write(json_obj)
+
+        return True if os.path.isfile(fpath) else False
+
+    def import_source_cfg(self, path=""):
+        """
+
+        :return:
+        :rtype:
+        """
+        self.source_cfg = []
+        with open(os.path.join(path, "source_cfg.json"), "r") as f:
+            json_obj = json.load(f)
+            for _, v in json_obj.items():
+                self.source_cfg.append(v)
+
+        return True if len(self.source_cfg) else False
 
 class PowerTree:
     POWER_TREE = {}  # REFDES-NETNAME: COMP_DICT
@@ -83,14 +137,10 @@ class PowerTree:
     REF_NET = None
     COMP_WO_CURRENT = None
 
-    EDB_OPEN = False
 
-    def __init__(self, project_dir,
-                 layout_file_name,
-                 local_power_lib_fname=None,
-                 edbversion="2021.2"):
+    def __init__(self, cfg=Configuration()):
 
-        # self.project_dir = os.path.abspath(project_dir)
+        """        # self.project_dir = os.path.abspath(project_dir)
         self.layout_dir = os.path.join(self.project_dir, "layout")
         self.layout_fpath = os.path.join(self.layout_dir, layout_file_name)
         self.log_dir = os.path.join(self.project_dir, "log")
@@ -107,46 +157,33 @@ class PowerTree:
         if not os.path.isdir(self.result_dir):
             os.mkdir(self.result_dir)
         if not os.path.isdir(self.configured_edb_path):
-            os.mkdir(self.configured_edb_path)
+            os.mkdir(self.configured_edb_path)"""
 
-        self.edbversion = edbversion
+        self._cfg = cfg
         """ansysem_root_dir = os.environ[self.ANSYSEM_ROOT[self.edbversion]]
         self.anstranslator = os.path.join(ansysem_root_dir, "anstranslator.exe")
         # self.pathToSIwaveNg = os.path.join(ansysem_root_dir, "siwave_ng.exe")"""
         self.h3d = None
 
-        self.local_power_lib_fname = None if not local_power_lib_fname else os.path.join(self.project_dir,
-                                                                                         local_power_lib_fname)
-
-    def create_configuration_file(self):
-        data = {"layout_file_name": "Galileo.brd",
-                "edb_file_name"
-                "current_consumption_lib_file": "current_consumption_lib.csv",
-                "refrence_net_name": "GND"}
-
-    def define_excluded_componenets(self, complist):
-        self.EXCLUDE_COMPONENTS = complist
-
-    def define_reference_net(self, reference_net):
-        self.REF_NET = reference_net
-
-    def Initialize_EDB(self):
+    def init_edb(self):
         start = time.time()
-        self.edb = Edb(edbpath=self.layout_fpath, edbversion=self.edbversion)
-        self.EDB_OPEN = True
+        self.appedb = Edb(edbpath=self._cfg.layout_file_path,
+                          edbversion=self._cfg.edb_version)
 
-        self.edb_components = self.edb.core_components.components
-        self.edb_nets = self.edb.core_nets.nets
+        edb_components = self.appedb.core_components.components
+        edb_nets = self.appedb.core_nets.nets
 
-        if len(self.edb_nets):
-
-            print("{} components\n{} nets".format(len(self.edb_components), len(self.edb_nets)))
-            timer(start, "initialization finished.")
+        if not len(edb_nets):
+            raise Exception("No net exists in the design. Initialization failed. Please check edb file name")
+        elif not len(edb_components):
+            raise Exception("No component exists in the design. Initialization failed. Please check edb file name")
         else:
-            raise Exception("Initialization failed. Please check edb file path\n")
+            print("{} components\n{} nets".format(len(edb_components), len(edb_nets)))
+            timer(start, "initialization finished.")
+            return True
 
     def close_edb(self):
-        self.edb.close_edb()
+        self.appedb.close_edb()
 
     def extract_power_tree(self, vrms):
 
@@ -156,7 +193,7 @@ class PowerTree:
             vrm_refdes = vrm["VRM_REFDES"]
             power_tree_id = "{}-{}".format(vrm_refdes, net_name)
             voltage = vrm["VOLTAGE"]
-            powertree_list, columns, power_nets = self.edb.core_nets.get_powertree(net_name, [self.REF_NET])
+            powertree_list, columns, power_nets = self.appedb.core_nets.get_powertree(net_name, [self.REF_NET])
             df = pd.DataFrame(powertree_list, columns=columns)
 
             df = df.drop(df[df.refdes.isin(self.EXCLUDE_COMPONENTS)].index)
@@ -200,7 +237,7 @@ class PowerTree:
         for powertree_id, complist in self.POWER_TREE.items():
             droplist = []
             for label, row in complist.iterrows():
-                data = self.edb.core_components.get_component_net_connection_info(row.refdes)
+                data = self.appedb.core_components.get_component_net_connection_info(row.vrm_refdes)
                 if not self.REF_NET in data["net_name"]:
                     droplist.append(label)
             self.POWER_TREE[powertree_id] = complist.drop(droplist)
@@ -244,32 +281,32 @@ class PowerTree:
             vrm, vrm_netname = powertree_id.split("-")
             # data = self.edb.core_components.get_component_net_connection_info(vrm)
             voltage = complist.loc[complist.component_type == "Source", "voltage"].values[0]
-            self.edb.core_siwave.create_voltage_source(positive_component_name=vrm,
-                                                       positive_net_name=vrm_netname,
-                                                       negative_component_name=vrm,
-                                                       negative_net_name=self.REF_NET,
-                                                       voltage_value=float(voltage),
-                                                       phase_value=0,
-                                                       source_name=powertree_id
-                                                       )
+            self.appedb.core_siwave.create_voltage_source(positive_component_name=vrm,
+                                                          positive_net_name=vrm_netname,
+                                                          negative_component_name=vrm,
+                                                          negative_net_name=self.REF_NET,
+                                                          voltage_value=float(voltage),
+                                                          phase_value=0,
+                                                          source_name=powertree_id
+                                                          )
             neg_term_list.append(powertree_id)
             cutout_signal_list.append(vrm_netname)
 
             for row, sink in complist[complist.component_type == "Sink"].iterrows():
                 refdes, net_name = sink["refdes"], sink["net_name"]
                 comp_id = sink["comp_id"]
-                self.edb.core_siwave.create_current_source(positive_component_name=refdes,
-                                                           positive_net_name=net_name,
-                                                           negative_component_name=refdes,
-                                                           negative_net_name=self.REF_NET,
-                                                           current_value=sink["current"],
-                                                           phase_value=0,
-                                                           source_name=comp_id)
+                self.appedb.core_siwave.create_current_source(positive_component_name=refdes,
+                                                              positive_net_name=net_name,
+                                                              negative_component_name=refdes,
+                                                              negative_net_name=self.REF_NET,
+                                                              current_value=sink["current"],
+                                                              phase_value=0,
+                                                              source_name=comp_id)
                 cutout_signal_list.append(net_name)
 
         if cutout:
-            self.edb.create_cutout(signal_list=cutout_signal_list, reference_list=[self.REF_NET],
-                                   extent_type="Bounding", expansion_size=0.01)
+            self.appedb.create_cutout(signal_list=cutout_signal_list, reference_list=[self.REF_NET],
+                                      extent_type="Bounding", expansion_size=0.01)
 
         """        settings = self.edb.core_siwave.get_siwave_dc_setup_template()
         settings.name = "DC_setup"
@@ -279,14 +316,14 @@ class PowerTree:
         self.save_edb_as(self.configured_edb_path)
 
     def add_siwave_dc_analysis(self):
-        return self.edb.core_siwave.add_siwave_dc_analysis()
+        return self.appedb.core_siwave.add_siwave_dc_analysis()
 
     def save_edb(self):
-        self.edb.save_edb()
+        self.appedb.save_edb()
 
     def save_edb_as(self, newloc):
 
-        self.edb._db.SaveAs(newloc)
+        self.appedb._db.SaveAs(newloc)
         self.close_edb()
 
     def create_aedt_project(self, solve=False):
@@ -355,4 +392,5 @@ class PowerTree:
 
 
 if __name__ == "__main__":
-    pass
+    app_powertree = PowerTree()
+    app_powertree.init_edb()
