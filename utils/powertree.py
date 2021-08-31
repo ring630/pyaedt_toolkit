@@ -3,18 +3,77 @@ import os
 from datetime import datetime
 import time
 import shutil
-
+import json
 import pandas as pd
 
 clr.AddReference('System.Xml')
 
 from pyaedt.edb import Edb
-from pyaedt import Desktop
-from pyaedt import Hfss3dLayout
+from pyaedt.desktop import Desktop
+from pyaedt.hfss3dlayout import Hfss3dLayout
 
 
 def timer(start, string_text=""):
     print("{}. Elapsed time = {} seconds".format(string_text, round(time.time() - start, 1)))
+
+
+class Configuration:
+
+    @property
+    def ansysem_path(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        ANSYSEM_ROOT = {"2020.1": "ANSYSEM_ROOT201",
+                        "2020.2": "ANSYSEM_ROOT202",
+                        "2021.1": "ANSYSEM_ROOT211",
+                        "2021.2": "ANSYSEM_ROOT212",
+                        "2022.1": "ANSYSEM_ROOT221",
+                        }
+        return ANSYSEM_ROOT[self.edb_version]
+
+    def __init__(self):
+        self.edb_version = "2021.2"
+
+        self.layout_file_name = ""
+        self.current_consumption_lib_file = "current_consumption_lib.json"
+        self.reference_net_name = "GND"
+
+    def create_default_config_file(self, path=""):
+        """
+
+        :return:
+        :rtype:
+        """
+        json_obj = json.dumps(self.__dict__, indent=4)
+        fpath = os.path.join(path, "config.json")
+        with open(fpath, "w", encoding='utf-8') as f:
+            f.write(json_obj)
+
+        return True if os.path.isfile(fpath) else False
+
+
+    def read_config_file(self, path=""):
+        """
+
+        :return:
+        :rtype:
+        """
+        with open(os.path.join(path, "config.json"), "r") as f:
+            json_obj = json.load(f)
+            for k, v in json_obj.items():
+                self.__dict__[k] = v
+
+
+class Source:
+
+    def __init__(self, refdes, voltage, output_net_name, output_inductor_refdes):
+        self.refdes = refdes
+        self.voltage = voltage
+        self.output_net_name = output_net_name
+        self.output_inductor_refdes = output_inductor_refdes
 
 
 class PowerTree:
@@ -26,22 +85,14 @@ class PowerTree:
 
     EDB_OPEN = False
 
-    ANSYSEM_ROOT = {"2020.1": "ANSYSEM_ROOT201",
-                    "2020.2": "ANSYSEM_ROOT202",
-                    "2021.1": "ANSYSEM_ROOT211",
-                    "2021.2": "ANSYSEM_ROOT212",
-                    "2022.1": "ANSYSEM_ROOT221",
-                    }
-
     def __init__(self, project_dir,
                  layout_file_name,
                  local_power_lib_fname=None,
                  edbversion="2021.2"):
 
-        self.project_dir = os.path.abspath(project_dir)
+        # self.project_dir = os.path.abspath(project_dir)
         self.layout_dir = os.path.join(self.project_dir, "layout")
         self.layout_fpath = os.path.join(self.layout_dir, layout_file_name)
-        self.config_file = os.path.join(self.project_dir, "config.json")
         self.log_dir = os.path.join(self.project_dir, "log")
         self.result_dir = os.path.join(self.project_dir, "result")
         self.configured_edb_path = os.path.join(self.result_dir, "configured_edb.aedb")
@@ -66,6 +117,12 @@ class PowerTree:
 
         self.local_power_lib_fname = None if not local_power_lib_fname else os.path.join(self.project_dir,
                                                                                          local_power_lib_fname)
+
+    def create_configuration_file(self):
+        data = {"layout_file_name": "Galileo.brd",
+                "edb_file_name"
+                "current_consumption_lib_file": "current_consumption_lib.csv",
+                "refrence_net_name": "GND"}
 
     def define_excluded_componenets(self, complist):
         self.EXCLUDE_COMPONENTS = complist
@@ -221,8 +278,8 @@ class PowerTree:
         self.add_siwave_dc_analysis()
         self.save_edb_as(self.configured_edb_path)
 
-    def add_siwave_dc_analysis(self, accuracy_level=1):
-        return self.edb.core_siwave.add_siwave_dc_analysis(accuracy_level)
+    def add_siwave_dc_analysis(self):
+        return self.edb.core_siwave.add_siwave_dc_analysis()
 
     def save_edb(self):
         self.edb.save_edb()
