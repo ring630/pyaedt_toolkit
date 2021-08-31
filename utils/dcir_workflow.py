@@ -85,7 +85,7 @@ if __name__ == "__main__":
     app.define_excluded_componenets(["J1A61"])
 
     # Load edb
-    app.Initialize_EDB()
+    app.init_edb()
 
     # User defined voltage regulator refdes, voltage and output net name
     app.extract_power_tree(vrms={"BST_V1P0_S0": {"VOLTAGE": 1, "VRM_REFDES": "U3A1"},
