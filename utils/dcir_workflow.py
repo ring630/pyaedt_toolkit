@@ -67,6 +67,7 @@ class DcirWorkflow:
                 comp = Component(sink.part_name)
                 comp.add_power_rail(sink.sink_id, sink.pins, current=0)
                 self.library_to_be_filled.add_component(comp)
+        self.library_to_be_filled.export_library(file_name="library_to_be_filled.json")
 
     def _export_library_to_be_filled(self):
         self.library_to_be_filled.export_library(file_name="library_to_be_filled.json")
@@ -128,6 +129,7 @@ class DcirWorkflow:
         os.mkdir(fpath_w_time)
         for ss_cfg in self.power_trees:
             ss_cfg.to_json(fpath_w_time)
+        return fpath_w_time
 
     def _read_results(self, path="result"):
         cols, result = self.app_power_tree.load_result(edb_name=self.wf_cfg.layout_file_basename,
@@ -144,15 +146,37 @@ class DcirWorkflow:
         self.wf_cfg.create_default_config_file()
         self.user_defined_vrm.create_example_cfg()
 
-    def run(self):
+
+    def extract_power_tree(self):
 
         self._load_workflow_cfg()
         self._load_user_defined_vrm()
-        self._import_library()
-
         self._create_power_tree_cfg()
         self._extract_power_trees()
+        self._import_library()
         self._assign_current_from_library()
+        print("*"*40)
+        print("*** Extraction is done. Please to to next step ***")
+        print("*" * 40)
+
+    def refresh_library(self):
+        self._refresh_library()
+
+        num = len(self.library_to_be_filled.components)
+        print("There are {} components have no current definition".format(num))
+        print("Please check file {}".format("library_to_be_filled.json"))
+
+
+    def analyze(self):
         self._config_dcir(DCIR_setup_name="DCIR_setup", cutout=False, solve=True)
         self._read_results()
-        self._wrtie_results_to_json()
+        result_folder = self._wrtie_results_to_json()
+        print("*" * 40)
+        print("*** DCIR analysis is done")
+        print("*** Please see results here {}".format(result_folder))
+        print("*" * 40)
+
+
+    def run_all(self):
+        self.extract_power_tree()
+        self.analyze()

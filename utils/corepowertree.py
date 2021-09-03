@@ -127,15 +127,16 @@ class Library:
 
         self.export_library(path)
 
-    def export_library(self, path="", file_name="library.json"):
+    def export_library(self, path="", file_name="library.json", backup=False):
         exp = {}
         for part_name, comp in self.components.items():
             exp[part_name] = comp.__dict__
 
         fpath = os.path.join(path, file_name)
         if os.path.isfile(fpath):
-            current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
-            shutil.copyfile(fpath, "backup-{}-{}".format(current_time, fpath))
+            if backup:
+                current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
+                shutil.copyfile(fpath, "backup-{}-{}".format(current_time, fpath))
 
         with open(fpath, "w", encoding="utf-8") as f:
             f.write(json.dumps(exp, indent=4))
@@ -321,6 +322,7 @@ class CorePowerTree:
         edb_nets = self.appedb.core_nets.nets
 
         if not len(edb_nets):
+            print(self._cfg.layout_file_path)
             raise Exception("No net exists in the design. Initialization failed. Please check edb file name")
         elif not len(edb_components):
             raise Exception("No component exists in the design. Initialization failed. Please check edb file name")
