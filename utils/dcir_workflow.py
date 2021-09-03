@@ -123,12 +123,12 @@ class DcirWorkflow:
         self.app_power_tree.save_edb_as(aedb_path)
         self.app_power_tree.create_aedt_project(aedb_path, DCIR_setup_name=DCIR_setup_name, solve=solve)
 
-    def _wrtie_results_to_json(self, path="result"):
+    def _wrtie_results_to_json(self, path="result", display=False):
         current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
         fpath_w_time = os.path.join(path, current_time)
         os.mkdir(fpath_w_time)
         for ss_cfg in self.power_trees:
-            ss_cfg.to_json(fpath_w_time)
+            ss_cfg.to_json(fpath_w_time, display=display)
         return fpath_w_time
 
     def _read_results(self, path="result"):
@@ -173,8 +173,9 @@ class DcirWorkflow:
         result_folder = self._wrtie_results_to_json()
         print("*" * 40)
         print("*** DCIR analysis is done")
-        print("*** Please see results here {}".format(result_folder))
         print("*" * 40)
+
+        print("*** Please see results here {}".format(result_folder))
 
 
     def run_all(self):

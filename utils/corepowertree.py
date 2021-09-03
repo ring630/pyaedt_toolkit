@@ -272,7 +272,7 @@ class SinkSourceCfg(Source):
     def add_rlc(self):
         pass
 
-    def to_json(self, path):
+    def to_json(self, path, display=False):
         tmp = {"powertree_id": self.cfg_id,
                "vrm_refdes": self.refdes,
                "voltage": self.voltage,
@@ -280,9 +280,14 @@ class SinkSourceCfg(Source):
                }
         for sink in self.sinks.values():
             tmp["sinks"].append(sink.__dict__)
-        with open(os.path.join(path, self.cfg_id + ".json"), "w", encoding="utf-8") as f:
-            f.write(json.dumps(tmp, indent=4))
 
+        json_obj = json.dumps(tmp, indent=4)
+
+        with open(os.path.join(path, self.cfg_id + ".json"), "w", encoding="utf-8") as f:
+            f.write(json_obj)
+
+        if display:
+            print(json_obj)
 
 class CorePowerTree:
 
