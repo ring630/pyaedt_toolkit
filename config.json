@@ -1,0 +1,6 @@
+{
+    "edb_version": "2021.1",
+    "layout_file_name": "Galileo.aedb",
+    "current_consumption_lib_file": "current_consumption_lib.json",
+    "reference_net_name": "GND"
+}

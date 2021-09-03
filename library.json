@@ -1,0 +1,29 @@
+{
+    "IPD031-201": {
+        "part_name": "IPD031-201",
+        "power_rails": {
+            "Core_1V0": {
+                "pins": "Y14-AB14-AD14-V14-Y20-Y18-Y16-AB20-AB18-T18-V20-V18-V16",
+                "current": 10
+            }
+        }
+    },
+    "E17764-001": {
+        "part_name": "E17764-001",
+        "power_rails": {
+            "P1V0": {
+                "pins": "10",
+                "current": 1
+            }
+        }
+    },
+    "G22224-001": {
+        "part_name": "G22224-001",
+        "power_rails": {
+            "FB3L1-V1P0_S0": {
+                "pins": "2",
+                "current": 1
+            }
+        }
+    }
+}

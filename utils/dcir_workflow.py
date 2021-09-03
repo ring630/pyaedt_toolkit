@@ -1,4 +1,7 @@
-from utils.powertree import PowerTree
+from utils.corepowertree import Configuration, CorePowerTree, UserSourceConfig, SinkSourceCfg, Library, Component
+from copy import deepcopy as copy
+import os
+from datetime import datetime
 
 """
 ******** User Action *******
@@ -20,82 +23,136 @@ Preparation
 # mode = 1
 
 
-
-
 class DcirWorkflow:
     def __init__(self):
-        pass
+        self.wf_cfg = Configuration()
+        self.user_defined_vrm = UserSourceConfig()
+        self.app_power_tree = CorePowerTree(self.wf_cfg)
+        self.power_trees = []
+        self.library = Library()
+        self.library_to_be_filled = Library()
 
+        self.node_to_ground= []
 
+    def _load_workflow_cfg(self):
+        self.wf_cfg.load_config_file()
 
+    def _load_user_defined_vrm(self):
+        self.user_defined_vrm.load_cfg()
 
-def run_this(mode=0):
-    """
+    def _create_power_tree_cfg(self):
+        self.app_power_tree.init_edb()
+        for vrm in self.user_defined_vrm.source_cfg["sources"]:
+            sink_source_cfg = SinkSourceCfg(refdes=vrm["refdes"],
+                                voltage=vrm["voltage"],
+                                output_net_name=vrm["output_net_name"],
+                                output_inductor_refdes=vrm["output_inductor_refdes"])
 
-    :param mode:
-    :return:
-    """
-    if mode == 0:
-        # extracted power trees are stored under project_folder/result/[datetime]/.
-        # For instance, /result/210820-08-47-41/U3A1-BST_V1P0_S0.csv
-        app.export_powertree_to_csv()
-        # components without current assignment are listed in log/comp_wo_current.csv
-        app.export_component_wo_current()
+            if not vrm["output_net_name"]:
+                self.app_power_tree._find_vrm_output_net_name_from_inductor_refdes(sink_source_cfg)
 
-        """
-        ******** User Action *******
-        
-        1, check project_folder/log/comp_wo_current.csv file. Components without current assignment are listed here.
-        2, open comp_lib.csv file, copy/paste components here from step 1. fill in current comsumption from datasheet. 
-        3, repeat mode 0 until no component show up in comp_wo_current.csv
-        4, check if all components have current assignment in power tree csv files. 
-        """
+            self.power_trees.append(sink_source_cfg)
 
-    else:
-        # configure EDB for DCIR analysis
-        app.config_dcir(cutout=True)
-        # create aedt project from EDB without solving
-        do_solve = True if mode == 2 else False
-        app.create_aedt_project(solve=do_solve)
-        if do_solve:
-            # read results and fill voltage information into esult/[datetime]/
-            app.load_result()
+    def _assign_current_from_library(self):
 
-        """
-        ******** User Action *******
-    
-        1, check results under project_folder/result/[datetime]/
-        2, open aedt project for post-processing at project_folder/result/configured_edb.aedt.
-        """
+        for cfg in self.power_trees:
+            for sink_id, sink in cfg.sinks.items():
+                if sink.part_name in self.library.components:
+                    power_rail_name = self.library.get_power_rail_name_from_pins(sink.part_name, sink.pins)
+                    if power_rail_name:
+                        sink.current = self.library.get_current(part_name=sink.part_name,
+                                                                power_rail_name=power_rail_name)
+                        continue
 
+                comp = Component(sink.part_name)
+                comp.add_power_rail(sink.sink_id, sink.pins, current=0)
+                self.library_to_be_filled.add_component(comp)
 
-if __name__ == "__main__":
-    settings = Settings()
-    settings.project_folder = "example_project2"
-    # specifiy project folder, edb folder and edbversion
-    app = PowerTree(project_dir=r"../example_project2",
-                    layout_file_name="Galileo.brd",
-                    edbversion="2021.2"
-                    )
+    def _export_library_to_be_filled(self):
+        self.library_to_be_filled.export_library(file_name="library_to_be_filled.json")
 
-    # specify global reference net name
-    app.define_reference_net("GND")
+    def _import_library(self):
+        self.library.import_library()
 
-    # exclude components from power tree extraction
-    app.define_excluded_componenets(["J1A61"])
+    def _refresh_library(self):
+        self.library.import_library()
+        self.library_to_be_filled.import_library(file_name="library_to_be_filled.json")
+        comp_to_remove = []
+        for part_name, comp in self.library_to_be_filled.components.items():
+            comp_filled = copy(comp)
+            for name, p in comp.power_rails.items():
+                if not p["current"]:
+                    del comp_filled.power_rails[name]
+            if len(comp_filled.power_rails):
+                comp_to_remove.append(part_name)
+                if part_name in self.library.components:
+                    comp_temp = self.library.components[part_name]
+                    comp_temp.power_rails = {**comp_temp.power_rails, **comp_filled.power_rails}
+                    print("add new power rails to existing component {}".format(part_name))
+                else:
+                    self.library.add_component(comp_filled)
+                    print("add new components {}".format(part_name))
 
-    # Load edb
-    app.init_edb()
+        for i in comp_to_remove:
+            del self.library_to_be_filled.components[i]
+        self.library_to_be_filled.export_library(file_name="library_to_be_filled.json")
+        self.library.export_library()
 
-    # User defined voltage regulator refdes, voltage and output net name
-    app.extract_power_tree(vrms={"BST_V1P0_S0": {"VOLTAGE": 1, "VRM_REFDES": "U3A1"},
-                                 "BST_V3P3_S5": {"VOLTAGE": 3.3, "VRM_REFDES": "U3A1"},
-                                 })
+    def _extract_power_trees(self):
+        for cfg in self.power_trees:
+            self.app_power_tree.extract_power_tree(cfg, ref_net_name=self.user_defined_vrm.reference_net_name)
+            if cfg.refdes == self.user_defined_vrm.node_to_ground:
+                self.node_to_ground.append(cfg.cfg_id)
 
-    # specify component power consumption library file. library file should be put in project folder
-    app.assign_component_current("comp_lib.csv")
+    def _config_dcir(self, DCIR_setup_name="DCIR_setup", path="result", cutout=False, solve=False):
+        signal_list = []
+        for cfg in self.power_trees:
+            self.app_power_tree.config_dcir(cfg, ref_net_name=self.user_defined_vrm.reference_net_name)
+            signal_list.extend(cfg.net_group)
 
-    app.power_tree_cleaning()
+        if cutout:
+            self.app_power_tree.cutout(self.user_defined_vrm.reference_net_name, signal_list)
 
-    mode = 0
-    run_this(mode)
+        self.app_power_tree.add_siwave_dc_analysis(DCIR_setup_name, node_to_ground=self.node_to_ground,
+                                                   accuracy_level=1)
+
+        if not os.path.isdir(path):
+            os.mkdir(path)
+        aedb_path = os.path.join(path, self.wf_cfg.layout_file_name)
+        self.app_power_tree.save_edb_as(aedb_path)
+        self.app_power_tree.create_aedt_project(aedb_path, DCIR_setup_name=DCIR_setup_name, solve=solve)
+
+    def _wrtie_results_to_json(self, path="result"):
+        current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
+        fpath_w_time = os.path.join(path, current_time)
+        os.mkdir(fpath_w_time)
+        for ss_cfg in self.power_trees:
+            ss_cfg.to_json(fpath_w_time)
+
+    def _read_results(self, path="result"):
+        cols, result = self.app_power_tree.load_result(edb_name=self.wf_cfg.layout_file_basename,
+                                            path=path
+                                            )
+        for ss_cfg in self.power_trees:
+            for sink_id, sink in ss_cfg.sinks.items():
+                if sink_id in result:
+                    pos_voltage = result[sink_id][cols.index("pos_voltage")]
+                    neg_voltage = result[sink_id][cols.index("neg_voltage")]
+                    sink.add_result(pos_voltage, neg_voltage)
+
+    def create_example_cfg_files(self):
+        self.wf_cfg.create_default_config_file()
+        self.user_defined_vrm.create_example_cfg()
+
+    def run(self):
+
+        self._load_workflow_cfg()
+        self._load_user_defined_vrm()
+        self._import_library()
+
+        self._create_power_tree_cfg()
+        self._extract_power_trees()
+        self._assign_current_from_library()
+        self._config_dcir(DCIR_setup_name="DCIR_setup", cutout=False, solve=True)
+        self._read_results()
+        self._wrtie_results_to_json()
