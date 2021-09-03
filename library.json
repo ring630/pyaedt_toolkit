@@ -5,6 +5,10 @@
             "Core_1V0": {
                 "pins": "Y14-AB14-AD14-V14-Y20-Y18-Y16-AB20-AB18-T18-V20-V18-V16",
                 "current": 10
+            },
+            "U2A5-V3P3_S5": {
+                "pins": "P5-P7",
+                "current": 0.2
             }
         }
     },
@@ -17,10 +21,10 @@
             }
         }
     },
-    "G22224-001": {
-        "part_name": "G22224-001",
+    "H18588-001": {
+        "part_name": "H18588-001",
         "power_rails": {
-            "FB3L1-V1P0_S0": {
+            "P3V3": {
                 "pins": "2",
                 "current": 1
             }
