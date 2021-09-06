@@ -38,7 +38,7 @@ pip install pyaedt
 jupyter notebook
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Example project
+# Run on Example Project
 ## Prepare configuration file in .json format
 Execute below code to create an example configuration file.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
