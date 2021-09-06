@@ -1,5 +1,11 @@
 # Introduction 
-The purpose of the project is to automate DCIR analysis worflow. Power tree and its associated components are extracted based on user provided VRM refdes and its output net name. The extraction searches components through serial inductors.
+DCIR_Automation is intended to setup DCIR simulation for complex PCB. This project is built on top of PyAEDT https://github.com/pyansys/PyAEDT. DCIR_Automation is licenced under the `MIT License
+<https://github.com/pyansys/PyAEDT/blob/main/LICENSE>`_.
+DCIR_Automation interacts directly with Ansys Electronics Database(AEDB) which can be loaded into both SIwave and Ansys Electronics Desktop(AEDT).
+DCIR_Automation extends existing DCIR workflow functionalities as below.
+1, extract power trees from EDB by user provided voltage regulator module(VRM) reference designator(Refdes) together with VRM output net name or output inductor Refdes.
+2, list all sink components on power tree per VRM.
+3, assign current to sink components from user defined local library.  
 
 # 
     Cadence dependency
@@ -16,14 +22,6 @@ The purpose of the project is to automate DCIR analysis worflow. Power tree and 
     pip install pyvista                                       #install pyvista
     
     pip install pyaedt                                        #install PyAEDT
-3. Download dcir_automation code and unzip it to local disk. For example C:\Users\hzhou\OneDrive - ANSYS, Inc\PyCharm_project\DCIR_Automation-main
-4. download and install pycharm. https://www.jetbrains.com/pycharm/download/#section=windows
-    
-    Create a new pycharm project from existing code
-    ![image](https://user-images.githubusercontent.com/27995305/131300279-5222f5a2-1804-49e5-9121-5fe345ab2b8b.png)
+3. Download dcir_automation code and unzip it to local disk. For example C:\DCIR_Automation
 
-
-# Analyze the example project
-![image](https://user-images.githubusercontent.com/27995305/131300123-67fbee98-0ac5-47c5-b77f-f535a4e687f2.png)
-
-
+# Prepare user defined input files
