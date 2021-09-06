@@ -200,7 +200,7 @@ app_dcir.analyze()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ## Check result
-open file working directory:\result\<date time>\U3A1-BST_V1P0_S0-.json
+open file working directory:/result/date time/U3A1-BST_V1P0_S0-.json
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     {
     "powertree_id": "U3A1-BST_V1P0_S0-",
