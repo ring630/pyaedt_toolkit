@@ -1,10 +1,14 @@
 # Introduction 
 DCIR_Automation is intended to setup DCIR simulation for complex PCB. This project is built on top of PyAEDT https://github.com/pyansys/PyAEDT. DCIR_Automation is licenced under the `MIT License
+
 <https://github.com/pyansys/PyAEDT/blob/main/LICENSE>`_.
 DCIR_Automation interacts directly with Ansys Electronics Database(AEDB) which can be loaded into both SIwave and Ansys Electronics Desktop(AEDT).
 DCIR_Automation extends existing DCIR workflow functionalities as below.
+
 1, extract power trees from EDB by user provided voltage regulator module(VRM) reference designator(Refdes) together with VRM output net name or output inductor Refdes.
+
 2, list all sink components on power tree per VRM.
+
 3, assign current to sink components from user defined local library.  
 
 # 
