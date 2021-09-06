@@ -1,18 +1,17 @@
 # Introduction 
-DCIR_Automation is intended to setup DCIR simulation for complex PCB. This project is built on top of PyAEDT https://github.com/pyansys/PyAEDT. DCIR_Automation is licenced under the `MIT License
+DCIR_Automation is intended to setup DCIR simulation for complex PCB. This project is built on top of PyAEDT https://github.com/pyansys/PyAEDT. DCIR_Automation is licenced under the `MIT License.
 
 <https://github.com/pyansys/PyAEDT/blob/main/LICENSE>`_.
-DCIR_Automation interacts directly with Ansys Electronics Database(AEDB) which can be loaded into both SIwave and Ansys Electronics Desktop(AEDT).
+DCIR_Automation interacts directly with Electronics Database(EDB) which can be loaded into both SIwave and Ansys Electronics Desktop(AEDT).  Cadence local installation is required for brd-to-edb conversion
+
 DCIR_Automation extends existing DCIR workflow functionalities as below.
 
-1, extract power trees from EDB by user provided voltage regulator module(VRM) reference designator(Refdes) together with VRM output net name or output inductor Refdes.
+1, Extract power trees from EDB by user provided voltage regulator module(VRM) reference designator(Refdes) together with VRM output net name or output inductor Refdes.
 
-2, list all sink components on power tree per VRM.
+2, List all sink components on power tree per VRM.
 
-3, assign current to sink components from user defined local library.  
+3, Assign current to sink components from user defined local library.  
 
-# 
-    Cadence dependency
 # Getting Started
 1. download and install Anaconda3. https://www.anaconda.com/products/individual
 2. open anaconda prompt to create a virtual environment dcir_automatio and install PyAEDT
