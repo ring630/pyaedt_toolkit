@@ -1,8 +1,11 @@
 # Introduction 
-DCIR_Automation is intended to setup DCIR simulation for complex PCB. This project is built on top of PyAEDT https://github.com/pyansys/PyAEDT. DCIR_Automation is licenced under the `MIT License.
+DCIR_Automation is intended to setup DCIR simulation for complex PCB. This project is built on top of [PyAEDT](https://github.com/pyansys/PyAEDT). DCIR_Automation is licenced under the [MIT License](https://github.com/pyansys/PyAEDT/blob/main/LICENSE).
 
-<https://github.com/pyansys/PyAEDT/blob/main/LICENSE>`_.
-DCIR_Automation interacts directly with Electronics Database(EDB) which can be loaded into both SIwave and Ansys Electronics Desktop(AEDT).  Cadence local installation is required for brd-to-edb conversion
+DCIR_Automation interacts directly with Electronics Database(EDB) which can be loaded into both SIwave and Ansys Electronics Desktop(AEDT).  Design data, in several industry-standard formats, can be converted into EDB format. Read AEDT Help for more information. [HFSS 3D Layout Help > Layout and Circuit Import Export Operations > Importing Layout Design Data](https://ansyshelp.ansys.com/account/secured?returnurl=/Views/Secured/Electronics/v212/en/home.htm%23../Subsystems/HFSS3DLayout/Content/3DLayout/ImportingLayoutDesignData.htm%3FTocPath%3DHFSS%25203D%2520Layout%7CHFSS%25203D%2520Layout%2520Help%7CLayout%2520and%2520Circuit%2520Import%2520Export%2520Operations%7CImporting%2520Layout%2520Design%2520Data%7C_____0)
+
+The Ansys Electronics Desktop supports Extracta Import from Cadence. Note that Extracta.Exe is
+a Cadence supplied executable and must be installed on your machine and on your executable
+path for this to work.
 
 DCIR_Automation extends existing DCIR workflow functionalities as below.
 
@@ -15,17 +18,25 @@ DCIR_Automation extends existing DCIR workflow functionalities as below.
 # Getting Started
 1. download and install Anaconda3. https://www.anaconda.com/products/individual
 2. open anaconda prompt to create a virtual environment dcir_automatio and install PyAEDT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#create a virtual environment
+conda create —-name dcir_automation python= 3.8 pandas numpy matplotlib ipython
 
-    conda create —-name dcir_automation python= 3.8 pandas numpy matplotlib ipython   #create a virtual environment
-    
-    conda info --envs                                         #list all environments
-    
-    conda activate dcir_automation                            #activate the new environement
-   
-    pip install pyvista                                       #install pyvista
-    
-    pip install pyaedt                                        #install PyAEDT
-3. Download dcir_automation code and unzip it to local disk. For example C:\DCIR_Automation
+#list all environments
+conda info --envs             
+
+#activate the new environement
+conda activate dcir_automation      
+
+#install pyvista and PyAEDT
+pip install pyvista                                       
+pip install pyaedt
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3. Download dcir_automation code and unzip it to jupyter notebook working directory.
+4. Start Jupyter Notebook
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+jupyter notebook
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Example project
 ## Prepare configuration file in .json format
