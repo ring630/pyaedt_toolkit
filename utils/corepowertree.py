@@ -17,72 +17,6 @@ def timer(start, string_text=""):
     print("{}. Elapsed time = {} seconds".format(string_text, round(time.time() - start, 1)))
 
 
-class Configuration:
-
-    @property
-    def ansysem_path(self):
-        """
-
-        :return:
-        :rtype:
-        """
-        ANSYSEM_ROOT = {"2020.1": "ANSYSEM_ROOT201",
-                        "2020.2": "ANSYSEM_ROOT202",
-                        "2021.1": "ANSYSEM_ROOT211",
-                        "2021.2": "ANSYSEM_ROOT212",
-                        "2022.1": "ANSYSEM_ROOT221",
-                        }
-        return ANSYSEM_ROOT[self.edb_version]
-
-    @property
-    def layout_file_path(self):
-        """
-
-        :return:
-        :rtype:
-        """
-        return os.path.join(os.path.abspath(""), "layout_database", self.layout_file_name)
-
-    @property
-    def layout_file_basename(self):
-        return self.layout_file_name.replace(".aedb", "")
-
-    def __init__(self, edb_version="2021.2"):
-        self.edb_version = edb_version
-
-        self.layout_file_name = "Galileo.aedb"
-        self.current_consumption_lib_file = "current_consumption_lib.json"
-        self.reference_net_name = "GND"
-
-    def create_default_config_file(self, path=""):
-        """
-
-        :return:
-        :rtype:
-        """
-        json_obj = json.dumps(self.__dict__, indent=4)
-        fpath = os.path.join(path, "config.json")
-        if os.path.isfile(fpath):
-            current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
-            shutil.copyfile(fpath, "{}-{}".format(fpath, current_time))
-
-        with open(fpath, "w", encoding='utf-8') as f:
-            f.write(json_obj)
-
-        return True if os.path.isfile(fpath) else False
-
-    def load_config_file(self, path=""):
-        """
-
-        :return:
-        :rtype:
-        """
-        with open(os.path.join(path, "config.json"), "r") as f:
-            json_obj = json.load(f)
-            for k, v in json_obj.items():
-                self.__dict__[k] = v
-
-
 class Component:
 
     def __init__(self, part_name=""):
@@ -125,7 +59,7 @@ class Library:
         comp.add_power_rail("P1V0", "10", 1)
         self.components["E17764-001"] = comp
 
-        self.export_library(path)
+        self.export_library(path, backup=True)
 
     def export_library(self, path="", file_name="library.json", backup=False):
         exp = {}
@@ -187,16 +121,46 @@ class Source:
         self.power_net_name = ""
 
 
-class UserSourceConfig:
+class UserConfiguration:
 
-    def __init__(self, referenece_net_name="", node_to_ground="", source=Source()):
+    @property
+    def ansysem_path(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        ANSYSEM_ROOT = {"2020.1": "ANSYSEM_ROOT201",
+                        "2020.2": "ANSYSEM_ROOT202",
+                        "2021.1": "ANSYSEM_ROOT211",
+                        "2021.2": "ANSYSEM_ROOT212",
+                        "2022.1": "ANSYSEM_ROOT221",
+                        }
+        return ANSYSEM_ROOT[self.edb_version]
+
+    @property
+    def layout_file_path(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        return os.path.join(os.path.abspath(""), "layout_database", self.layout_file_name)
+
+    @property
+    def layout_file_basename(self):
+        return self.layout_file_name.replace(".aedb", "")
+
+    def __init__(self, source=Source()):
         """
 
         :param source:
         :type source:
         """
-        self.reference_net_name = referenece_net_name
-        self.node_to_ground = node_to_ground
+        self.edb_version = "2021.2"
+        self.layout_file_name = None
+        self.reference_net_name = None
+        self.node_to_ground = None
         self.source_cfg = []
         if isinstance(source, list):
             self.source_cfg.extend(source)
@@ -227,21 +191,22 @@ class UserSourceConfig:
 
         return True if os.path.isfile(fpath) else False
 
-    def load_cfg(self, path=""):
+    def load_project_cfg(self):
+        pass
+
+    def load_dcir_cfg(self, path=""):
         """
 
         :return:
         :rtype:
         """
 
-        with open(os.path.join(path, "source_cfg.json"), "r") as f:
-            temp = dict(json.load(f))
-            self.reference_net_name = temp["reference_net_name"]
-            del temp["reference_net_name"]
-            self.node_to_ground = temp["node_to_ground"]
-            del temp["node_to_ground"]
-
-            self.source_cfg = temp
+        with open(os.path.join(path, "configuration.json"), "r") as f:
+            json_obj = dict(json.load(f))
+            self.edb_version = json_obj["project_config"]["edb_version"]
+            self.reference_net_name = json_obj["project_config"]["reference_net_name"]
+            self.layout_file_name = json_obj["project_config"]["layout_file_name"]
+            self.source_cfg = json_obj
 
             # for _, v in json_obj.items():
             # v.output_net_name = v.output_net_name.replace(" ", "")
@@ -249,6 +214,50 @@ class UserSourceConfig:
             # self.source_cfg.append(v)
 
         return True if len(self.source_cfg) else False
+
+    def create_default_config_file(self, path=""):
+        """
+
+        :return:
+        :rtype:
+        """
+        config_template = {
+            "project_config":
+                {
+                    "edb_version": "2021.1",
+                    "layout_file_name": "Galileo.aedb",
+                    "reference_net_name": "GND",
+                    "node_to_ground": "U3A1"
+                },
+
+            "sources": [
+                {
+                    "refdes": "U3A1",
+                    "voltage": 1,
+                    "output_net_name": "BST_V1P0_S0",
+                    "output_inductor_refdes": "",
+                    "power_net_name": ""
+                },
+                {
+                    "refdes": "U3A1",
+                    "voltage": 3.3,
+                    "output_net_name": "",
+                    "output_inductor_refdes": "L3A1",
+                    "power_net_name": ""
+                }
+            ]
+        }
+
+        json_obj = json.dumps(config_template, indent=4)
+        fpath = os.path.join(path, "configuration.json")
+        if os.path.isfile(fpath):
+            current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
+            shutil.copyfile(fpath, "{}-{}".format(fpath, current_time))
+
+        with open(fpath, "w", encoding='utf-8') as f:
+            f.write(json_obj)
+
+        return True if os.path.isfile(fpath) else False
 
 
 class SinkSourceCfg(Source):
@@ -289,9 +298,10 @@ class SinkSourceCfg(Source):
         if display:
             print(json_obj)
 
+
 class CorePowerTree:
 
-    def __init__(self, cfg=Configuration()):
+    def __init__(self, cfg=UserConfiguration()):
 
         """        # self.project_dir = os.path.abspath(project_dir)
         self.layout_dir = os.path.join(self.project_dir, "layout")
