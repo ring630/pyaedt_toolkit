@@ -1,4 +1,4 @@
-from utils.corepowertree import Configuration, CorePowerTree, UserSourceConfig, SinkSourceCfg, Library, Component
+from utils.corepowertree import CorePowerTree, UserConfiguration, SinkSourceCfg, Library, Component
 from copy import deepcopy as copy
 import os
 from datetime import datetime
@@ -25,24 +25,20 @@ Preparation
 
 class DcirWorkflow:
     def __init__(self):
-        self.wf_cfg = Configuration()
-        self.user_defined_vrm = UserSourceConfig()
-        self.app_power_tree = CorePowerTree(self.wf_cfg)
+        self.user_configuration = UserConfiguration()
+        self.app_power_tree = CorePowerTree(self.user_configuration)
         self.power_trees = []
         self.library = Library()
         self.library_to_be_filled = Library()
 
         self.node_to_ground= []
 
-    def _load_workflow_cfg(self):
-        self.wf_cfg.load_config_file()
-
-    def _load_user_defined_vrm(self):
-        self.user_defined_vrm.load_cfg()
+    def _load_user_configuration(self):
+        self.user_configuration.load_dcir_cfg()
 
     def _create_power_tree_cfg(self):
         self.app_power_tree.init_edb()
-        for vrm in self.user_defined_vrm.source_cfg["sources"]:
+        for vrm in self.user_configuration.source_cfg["sources"]:
             sink_source_cfg = SinkSourceCfg(refdes=vrm["refdes"],
                                 voltage=vrm["voltage"],
                                 output_net_name=vrm["output_net_name"],
@@ -101,25 +97,25 @@ class DcirWorkflow:
 
     def _extract_power_trees(self):
         for cfg in self.power_trees:
-            self.app_power_tree.extract_power_tree(cfg, ref_net_name=self.user_defined_vrm.reference_net_name)
-            if cfg.refdes == self.user_defined_vrm.node_to_ground:
+            self.app_power_tree.extract_power_tree(cfg, ref_net_name=self.user_configuration.reference_net_name)
+            if cfg.refdes == self.user_configuration.node_to_ground:
                 self.node_to_ground.append(cfg.cfg_id)
 
     def _config_dcir(self, DCIR_setup_name="DCIR_setup", path="result", cutout=False, solve=False):
         signal_list = []
         for cfg in self.power_trees:
-            self.app_power_tree.config_dcir(cfg, ref_net_name=self.user_defined_vrm.reference_net_name)
+            self.app_power_tree.config_dcir(cfg, ref_net_name=self.user_configuration.reference_net_name)
             signal_list.extend(cfg.net_group)
 
         if cutout:
-            self.app_power_tree.cutout(self.user_defined_vrm.reference_net_name, signal_list)
+            self.app_power_tree.cutout(self.user_configuration.reference_net_name, signal_list)
 
         self.app_power_tree.add_siwave_dc_analysis(DCIR_setup_name, node_to_ground=self.node_to_ground,
                                                    accuracy_level=1)
 
         if not os.path.isdir(path):
             os.mkdir(path)
-        aedb_path = os.path.join(path, self.wf_cfg.layout_file_name)
+        aedb_path = os.path.join(path, self.user_configuration.layout_file_name)
         self.app_power_tree.save_edb_as(aedb_path)
         self.app_power_tree.create_aedt_project(aedb_path, DCIR_setup_name=DCIR_setup_name, solve=solve)
 
@@ -132,7 +128,7 @@ class DcirWorkflow:
         return fpath_w_time
 
     def _read_results(self, path="result"):
-        cols, result = self.app_power_tree.load_result(edb_name=self.wf_cfg.layout_file_basename,
+        cols, result = self.app_power_tree.load_result(edb_name=self.user_configuration.layout_file_basename,
                                             path=path
                                             )
         for ss_cfg in self.power_trees:
@@ -143,14 +139,12 @@ class DcirWorkflow:
                     sink.add_result(pos_voltage, neg_voltage)
 
     def create_example_cfg_files(self):
-        self.wf_cfg.create_default_config_file()
-        self.user_defined_vrm.create_example_cfg()
+        self.user_configuration.create_example_cfg()
 
 
     def extract_power_tree(self):
 
-        self._load_workflow_cfg()
-        self._load_user_defined_vrm()
+        self._load_user_configuration()
         self._create_power_tree_cfg()
         self._extract_power_trees()
         self._import_library()
