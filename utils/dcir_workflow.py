@@ -24,14 +24,49 @@ Preparation
 
 
 class DcirWorkflow:
-    def __init__(self):
+
+    @property
+    def ansysem_path(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        ANSYSEM_ROOT = {"2020.1": "ANSYSEM_ROOT201",
+                        "2020.2": "ANSYSEM_ROOT202",
+                        "2021.1": "ANSYSEM_ROOT211",
+                        "2021.2": "ANSYSEM_ROOT212",
+                        "2022.1": "ANSYSEM_ROOT221",
+                        }
+        return ANSYSEM_ROOT[self.edb_version]
+
+    @property
+    def layout_file_path(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        return os.path.join(os.path.abspath(""), "layout_database", self.layout_file_name)
+
+    @property
+    def layout_file_basename(self):
+        return self.layout_file_name.replace(".aedb", "")
+
+    def __init__(self, edb_version, layout_file_name):
+        self.edb_version = edb_version
+        self.layout_file_name = layout_file_name
+
         self.user_configuration = UserConfiguration()
-        self.app_power_tree = CorePowerTree(self.user_configuration)
+        self.app_power_tree = CorePowerTree(self.layout_file_path, self.edb_version, self.user_configuration)
         self.power_trees = []
         self.library = Library()
         self.library_to_be_filled = Library()
 
         self.node_to_ground= []
+
+        if not os.path.isdir("log"):
+            os.mkdir("log")
 
     def _load_user_configuration(self):
         self.user_configuration.load_dcir_cfg()
@@ -115,11 +150,14 @@ class DcirWorkflow:
 
         if not os.path.isdir(path):
             os.mkdir(path)
-        aedb_path = os.path.join(path, self.user_configuration.layout_file_name)
+        aedb_path = os.path.join(path, self.layout_file_name)
         self.app_power_tree.save_edb_as(aedb_path)
         self.app_power_tree.create_aedt_project(aedb_path, DCIR_setup_name=DCIR_setup_name, solve=solve)
 
     def _wrtie_results_to_json(self, path="result", display=False):
+        if not os.path.isdir(path):
+            os.mkdir(path)
+
         current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
         fpath_w_time = os.path.join(path, current_time)
         os.mkdir(fpath_w_time)
@@ -128,7 +166,7 @@ class DcirWorkflow:
         return fpath_w_time
 
     def _read_results(self, path="result"):
-        cols, result = self.app_power_tree.load_result(edb_name=self.user_configuration.layout_file_basename,
+        cols, result = self.app_power_tree.load_result(edb_name=self.layout_file_basename,
                                             path=path
                                             )
         for ss_cfg in self.power_trees:
@@ -138,28 +176,29 @@ class DcirWorkflow:
                     neg_voltage = result[sink_id][cols.index("neg_voltage")]
                     sink.add_result(pos_voltage, neg_voltage)
 
-    def create_example_cfg_files(self):
-        self.user_configuration.create_example_cfg()
-
-
     def extract_power_tree(self):
 
         self._load_user_configuration()
         self._create_power_tree_cfg()
         self._extract_power_trees()
         self._import_library()
-        self._assign_current_from_library()
+
         print("*"*40)
         print("*** Extraction is done. Please to to next step ***")
         print("*" * 40)
 
-    def refresh_library(self):
+    def write_result(self):
+        self._wrtie_results_to_json()
+
+    def assign_current_from_library(self):
+        self._assign_current_from_library()
+
+    def update_library(self):
         self._refresh_library()
 
         num = len(self.library_to_be_filled.components)
         print("There are {} components have no current definition".format(num))
         print("Please check file {}".format("library_to_be_filled.json"))
-
 
     def analyze(self):
         self._config_dcir(DCIR_setup_name="DCIR_setup", cutout=False, solve=True)

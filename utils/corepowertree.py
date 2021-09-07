@@ -61,7 +61,7 @@ class Library:
 
         self.export_library(path, backup=True)
 
-    def export_library(self, path="", file_name="library.json", backup=False):
+    def export_library(self, path="", file_name="library.json", backup=False, backup_dir="log"):
         exp = {}
         for part_name, comp in self.components.items():
             exp[part_name] = comp.__dict__
@@ -69,8 +69,10 @@ class Library:
         fpath = os.path.join(path, file_name)
         if os.path.isfile(fpath):
             if backup:
+                if not os.path.isdir(backup_dir):
+                    os.mkdir(backup_dir)
                 current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
-                shutil.copyfile(fpath, "backup-{}-{}".format(current_time, fpath))
+                shutil.copyfile(fpath, os.path.join(backup_dir, "{}-{}".format(fpath, current_time)))
 
         with open(fpath, "w", encoding="utf-8") as f:
             f.write(json.dumps(exp, indent=4))
@@ -123,42 +125,13 @@ class Source:
 
 class UserConfiguration:
 
-    @property
-    def ansysem_path(self):
-        """
-
-        :return:
-        :rtype:
-        """
-        ANSYSEM_ROOT = {"2020.1": "ANSYSEM_ROOT201",
-                        "2020.2": "ANSYSEM_ROOT202",
-                        "2021.1": "ANSYSEM_ROOT211",
-                        "2021.2": "ANSYSEM_ROOT212",
-                        "2022.1": "ANSYSEM_ROOT221",
-                        }
-        return ANSYSEM_ROOT[self.edb_version]
-
-    @property
-    def layout_file_path(self):
-        """
-
-        :return:
-        :rtype:
-        """
-        return os.path.join(os.path.abspath(""), "layout_database", self.layout_file_name)
-
-    @property
-    def layout_file_basename(self):
-        return self.layout_file_name.replace(".aedb", "")
-
     def __init__(self, source=Source()):
         """
 
         :param source:
         :type source:
         """
-        self.edb_version = "2021.2"
-        self.layout_file_name = None
+
         self.reference_net_name = None
         self.node_to_ground = None
         self.source_cfg = []
@@ -166,30 +139,6 @@ class UserConfiguration:
             self.source_cfg.extend(source)
         else:
             self.source_cfg.append(source)
-
-    def create_example_cfg(self, path=""):
-        """
-
-        :return:
-        :rtype:
-        """
-        source_cfg = {"sources": []}
-        for i in self.source_cfg:
-            source_cfg["reference_net_name"] = self.reference_net_name
-            source_cfg["node_to_ground"] = self.reference_net_name
-            source_cfg["sources"].append(i.__dict__)
-
-        json_obj = json.dumps(source_cfg, indent=4)
-        fpath = os.path.join(path, "source_cfg.json")
-
-        if os.path.isfile(fpath):
-            current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
-            shutil.copyfile(fpath, "{}\\backup-{}-source_cfg.json".format(path, current_time))
-
-        with open(fpath, "w", encoding='utf-8') as f:
-            f.write(json_obj)
-
-        return True if os.path.isfile(fpath) else False
 
     def load_project_cfg(self):
         pass
@@ -203,9 +152,7 @@ class UserConfiguration:
 
         with open(os.path.join(path, "configuration.json"), "r") as f:
             json_obj = dict(json.load(f))
-            self.edb_version = json_obj["project_config"]["edb_version"]
             self.reference_net_name = json_obj["project_config"]["reference_net_name"]
-            self.layout_file_name = json_obj["project_config"]["layout_file_name"]
             self.source_cfg = json_obj
 
             # for _, v in json_obj.items():
@@ -215,7 +162,7 @@ class UserConfiguration:
 
         return True if len(self.source_cfg) else False
 
-    def create_default_config_file(self, path=""):
+    def create_default_config_file(self, path="", backup_dir="log"):
         """
 
         :return:
@@ -224,8 +171,6 @@ class UserConfiguration:
         config_template = {
             "project_config":
                 {
-                    "edb_version": "2021.1",
-                    "layout_file_name": "Galileo.aedb",
                     "reference_net_name": "GND",
                     "node_to_ground": "U3A1"
                 },
@@ -236,14 +181,12 @@ class UserConfiguration:
                     "voltage": 1,
                     "output_net_name": "BST_V1P0_S0",
                     "output_inductor_refdes": "",
-                    "power_net_name": ""
                 },
                 {
                     "refdes": "U3A1",
                     "voltage": 3.3,
                     "output_net_name": "",
                     "output_inductor_refdes": "L3A1",
-                    "power_net_name": ""
                 }
             ]
         }
@@ -251,8 +194,11 @@ class UserConfiguration:
         json_obj = json.dumps(config_template, indent=4)
         fpath = os.path.join(path, "configuration.json")
         if os.path.isfile(fpath):
+            if not os.path.isdir(backup_dir):
+                os.mkdir(backup_dir)
+
             current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
-            shutil.copyfile(fpath, "{}-{}".format(fpath, current_time))
+            shutil.copyfile(fpath, os.path.join(backup_dir,"{}-{}".format(fpath, current_time)))
 
         with open(fpath, "w", encoding='utf-8') as f:
             f.write(json_obj)
@@ -301,26 +247,9 @@ class SinkSourceCfg(Source):
 
 class CorePowerTree:
 
-    def __init__(self, cfg=UserConfiguration()):
-
-        """        # self.project_dir = os.path.abspath(project_dir)
-        self.layout_dir = os.path.join(self.project_dir, "layout")
-        self.layout_fpath = os.path.join(self.layout_dir, layout_file_name)
-        self.log_dir = os.path.join(self.project_dir, "log")
-        self.result_dir = os.path.join(self.project_dir, "result")
-        self.configured_edb_path = os.path.join(self.result_dir, "configured_edb.aedb")
-        self.aedt_results_dir = None
-
-        if not os.path.isdir(self.project_dir):
-            os.mkdir(self.project_dir)
-        if not os.path.isdir(self.layout_dir):
-            os.mkdir(self.layout_dir)
-        if not os.path.isdir(self.log_dir):
-            os.mkdir(self.log_dir)
-        if not os.path.isdir(self.result_dir):
-            os.mkdir(self.result_dir)
-        if not os.path.isdir(self.configured_edb_path):
-            os.mkdir(self.configured_edb_path)"""
+    def __init__(self, layout_file_path, edb_version, cfg=UserConfiguration()):
+        self.edb_version = edb_version
+        self.layout_file_path = layout_file_path
 
         self._cfg = cfg
         """ansysem_root_dir = os.environ[self.ANSYSEM_ROOT[self.edbversion]]
@@ -330,8 +259,8 @@ class CorePowerTree:
 
     def init_edb(self):
         start = time.time()
-        self.appedb = Edb(edbpath=self._cfg.layout_file_path,
-                          edbversion=self._cfg.edb_version)
+        self.appedb = Edb(edbpath=self.layout_file_path,
+                          edbversion=self.edb_version)
 
         edb_components = self.appedb.core_components.components
         edb_nets = self.appedb.core_nets.nets
@@ -471,7 +400,7 @@ class CorePowerTree:
         NonGraphical = True
         NewThread = False
 
-        Desktop(self._cfg.edb_version, NonGraphical, NewThread)
+        Desktop(self.edb_version, NonGraphical, NewThread)
 
         targetfile = os.path.join(aedb_path, "edb.def")
         self.h3d = Hfss3dLayout(targetfile)
