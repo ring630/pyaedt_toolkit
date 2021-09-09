@@ -154,12 +154,12 @@ class DcirWorkflow:
         self.app_power_tree.save_edb_as(aedb_path)
         self.app_power_tree.create_aedt_project(aedb_path, DCIR_setup_name=DCIR_setup_name, solve=solve)
 
-    def _wrtie_results_to_json(self, path="result", display=False):
+    def _wrtie_results_to_json(self, path="result", display=False, suffix=""):
         if not os.path.isdir(path):
             os.mkdir(path)
 
         current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
-        fpath_w_time = os.path.join(path, current_time)
+        fpath_w_time = os.path.join(path, current_time + suffix)
         os.mkdir(fpath_w_time)
         for ss_cfg in self.power_trees:
             ss_cfg.to_json(fpath_w_time, display=display)
@@ -182,13 +182,13 @@ class DcirWorkflow:
         self._create_power_tree_cfg()
         self._extract_power_trees()
         self._import_library()
-
+        self._assign_current_from_library()
         print("*"*40)
         print("*** Extraction is done. Please to to next step ***")
         print("*" * 40)
 
-    def write_result(self):
-        self._wrtie_results_to_json()
+    def write_result(self, suffix=""):
+        self._wrtie_results_to_json(suffix=suffix)
 
     def assign_current_from_library(self):
         self._assign_current_from_library()
