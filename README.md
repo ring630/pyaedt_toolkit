@@ -32,6 +32,15 @@ conda activate dcir_automation
 pip install pyvista                                       
 pip install pyaedt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Jupyter notebook will be used as the user interface. To change jupyter notebook working directory,
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#In Anaconda Prompt run 
+
+jupyter notebook --generate-config.
+
+#This writes a file to C:\Users\username\.jupyter\jupyter_notebook_config.py.
+#Open it and search for the following line in the file: #c.NotebookApp.notebook_dir =
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 3. Download dcir_automation code and unzip it to jupyter notebook working directory.
 4. Start Jupyter Notebook
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
