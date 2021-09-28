@@ -16,17 +16,20 @@ DCIR_Automation extends existing DCIR workflow functionalities as below.
 3, Assign current to sink components from user defined local library.  
 
 # Getting Started
-1. download and install Anaconda3. https://www.anaconda.com/products/individual
-2. open anaconda prompt to create a virtual environment dcir_automatio and install PyAEDT
+1. download and install Anaconda3. https://www.anaconda.com/products/individual.
+2. open anaconda prompt Start -> Anaconda3 -> Anaconda Prompt(Anaconda3)
+3. create a virtual environment dcir_automation (optional)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #create a virtual environment
 conda create —-name dcir_automation python=3.8 pandas numpy matplotlib ipython
 
-#list all environments
-conda info --envs             
-
+# list all environments
+conda info --envs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+4. activate virtual environment and install packages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #activate the new environement
-conda activate dcir_automation      
+conda activate dcir_automation
 
 #install Jupyter notebook
 conda install -c conda-forge notebook
@@ -35,18 +38,21 @@ conda install -c conda-forge notebook
 pip install pyvista                                       
 pip install pyaedt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Jupyter notebook will be used as the user interface. To change jupyter notebook working directory,
+5. optinally, jupyter notebook default working directory can be changed
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #In Anaconda Prompt run 
 
 jupyter notebook --generate-config.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This writes a file to C:\Users\username\.jupyter\jupyter_notebook_config.py. Open it and search for 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#c.NotebookApp.notebook_dir =
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+change it to 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+c.NotebookApp.notebook_dir = 'C\:new_working_directory'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+6. Download dcir_automation code and unzip it to jupyter notebook working directory.
+7. Start Jupyter Notebook from Start -> Anaconda3 -> Jupyter Notebook (dcir_automation)
 
-#This writes a file to C:\Users\username\.jupyter\jupyter_notebook_config.py.
-#Open it and search for the following line in the file: #c.NotebookApp.notebook_dir =
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-3. Download dcir_automation code and unzip it to jupyter notebook working directory.
-4. Start Jupyter Notebook
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-jupyter notebook
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 5. Open app.ipynb, and follow the guide to analyze DCIR for Galileo board.
