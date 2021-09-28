@@ -20,13 +20,16 @@ DCIR_Automation extends existing DCIR workflow functionalities as below.
 2. open anaconda prompt to create a virtual environment dcir_automatio and install PyAEDT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #create a virtual environment
-conda create —-name dcir_automation python= 3.8 pandas numpy matplotlib ipython
+conda create —-name dcir_automation python=3.8 pandas numpy matplotlib ipython
 
 #list all environments
 conda info --envs             
 
 #activate the new environement
 conda activate dcir_automation      
+
+#install Jupyter notebook
+conda install -c conda-forge notebook
 
 #install pyvista and PyAEDT
 pip install pyvista                                       
