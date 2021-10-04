@@ -54,5 +54,5 @@ c.NotebookApp.notebook_dir = 'C\:new_working_directory'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 6. download dcir_automation code and unzip it to jupyter notebook working directory.
 7. start Jupyter Notebook from Start -> Anaconda3 -> Anaconda Navigator(Anaconda3). Change the enviroment from base(root) to dcir_automation and launch Jupyter notebook
-![image](https://user-images.githubusercontent.com/27995305/135089960-0e153b42-c1e2-4039-a24c-2d2b98d5c11d.png)
+![image](https://user-images.githubusercontent.com/27995305/135802697-6d93f45a-e209-4781-bd70-36a5db478280.png)
 8. Open app.ipynb, and follow the guide to analyze DCIR for Galileo board.
