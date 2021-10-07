@@ -16,9 +16,20 @@ DCIR_Automation extends existing DCIR workflow functionalities as below.
 3, Assign current to sink components from user defined local library.  
 
 # Getting Started
-1. Download and install Anaconda3. https://www.anaconda.com/products/individual.
-2. Open anaconda prompt Start -> Anaconda3 -> Anaconda Prompt(Anaconda3)
-3. Create a virtual environment dcir_automation (optional)
+1. Unzip the package to local disk. Here the package will be zipped in C:\jupyter_folder. Now you should have two files as below
+
+ - C:\Jupyter_folder\DCIR_Automation-0.1.1\app.ipynb. This is the jupyter notebook file.
+ - C:\Jupyter_folder\DCIR_Automation-0.1.1\docs\environment.yml. This is the python config file which will be used in the next step.
+ - C:\Jupyter_folder\DCIR_Automation-0.1.1\docs\jupyter_notebook_config.py. This file defines notebook working directory.
+ - C:\Jupyter_folder\DCIR_Automation-0.1.1\docs\Jupyter Notebook (dcir_automation).Ink. This is a shortcut to launch notebook.
+
+3. Install Python3 and create a virtual environment-
+ - Download and install Anaconda3. https://www.anaconda.com/products/individual.
+ - Open anaconda prompt Start -> Anaconda3 -> Anaconda Prompt(Anaconda3). Execute below code. A virtual environment named dcir_automation will be created.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+conda env create -f C:\Jupyter_folder\DCIR_Automation-0.1.1\docs\environment.yml
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+5. Copy jupyter_notebook_config.py into C:\Users\[SIGNUM]\.jupyter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #create a virtual environment
 conda create —-name dcir_automation python=3.8 pandas numpy matplotlib ipython
