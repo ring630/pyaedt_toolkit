@@ -1,0 +1,16 @@
+name: dcir_automation
+channels:
+  - defaults
+dependencies:
+  - python==3.8
+  - pip
+  - pandas
+  - numpy
+  - matplotlib
+  - ipython
+  - notebook
+  - pip:
+    - pyvista
+    - pyaedt
+prefix: C:\Anaconda3\envs\dcir_automation
+# conda env create -f environment.yml
