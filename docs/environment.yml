@@ -1,4 +1,4 @@
-name: dcir_automation
+name: pyaedt_env
 channels:
   - defaults
 dependencies:
@@ -12,5 +12,5 @@ dependencies:
   - pip:
     - pyvista
     - pyaedt
-prefix: C:\Anaconda3\envs\dcir_automation
+prefix: C:\Anaconda3\envs\pyaedt_env
 # conda env create -f environment.yml
