@@ -19,89 +19,25 @@ def timer(start, string_text=""):
 
 class Component:
 
-    def __init__(self, part_name=""):
-        self.part_name = part_name
-        self.power_rails = {}
-
-    def add_power_rail(self, name, pins, current):
-        self.power_rails[name] = {"pins": pins,
-                                  "current": current}
-
-
-class Library:
-
-    def __init__(self):
-        self.components = {}
-
-    def add_component(self, component=Component()):
-        self.components[component.part_name] = component
-
-    def get_current(self, part_name, power_rail_name):
-        if power_rail_name:
-            return self.components[part_name].power_rails[power_rail_name]["current"]
-        return False
-
-    def get_power_rail_name_from_pins(self, part_name, pins):
-        for name, i in self.components[part_name].power_rails.items():
-            if not i["pins"] == pins:
-                continue
-            else:
-                return name
-        return False
-
-    def create_example_library(self, path=""):
-
-        comp = Component("IPD031-201")
-        comp.add_power_rail("Core_1V0", "Y14-AB14-AD14-V14-Y20-Y18-Y16-AB20-AB18-T18-V20-V18-V16", 10)
-        self.components["IPD031-201"] = comp
-
-        comp = Component("E17764-001")
-        comp.add_power_rail("P1V0", "10", 1)
-        self.components["E17764-001"] = comp
-
-        self.export_library(path, backup=True)
-
-    def export_library(self, path="", file_name="library.json", backup=False, backup_dir="log"):
-        exp = {}
-        for part_name, comp in self.components.items():
-            exp[part_name] = comp.__dict__
-
-        fpath = os.path.join(path, file_name)
-        if os.path.isfile(fpath):
-            if backup:
-                if not os.path.isdir(backup_dir):
-                    os.mkdir(backup_dir)
-                current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
-                shutil.copyfile(fpath, os.path.join(backup_dir, "{}-{}".format(fpath, current_time)))
-
-        with open(fpath, "w", encoding="utf-8") as f:
-            f.write(json.dumps(exp, indent=4))
-
-    def import_library(self, path="", file_name="library.json"):
-        self.components = {}
-        with open(os.path.join(path, file_name), "r") as f:
-            json_obj = json.load(f)
-            for part_name, comp in json_obj.items():
-                comp_tmp = Component()
-                for k, v in comp.items():
-                    comp_tmp.__dict__[k] = v
-                self.components[part_name] = comp_tmp
-        return
-
-
-class Sink:
-
     @property
-    def sink_id(self):
+    def id(self):
         return "{}-{}".format(self.refdes, self.net_name)
 
-    def __init__(self, refdes, net_name, part_name, pins, current=0, comp_type=""):
+    def __init__(self, refdes, net_name, pins=None, part_name=None):
         self.refdes = refdes
+        self.net_name = net_name
+        self.pins = pins
+        self.part_name = part_name
+
+
+class Sink(Component):
+
+    def __init__(self, refdes, net_name, pins=None, part_name=None, current=0):
+        super().__init__(refdes, net_name, pins, part_name)
         self.current = current
         self.net_name = net_name
         self.part_name = part_name
         self.pins = pins
-        self.comp_type = comp_type
 
         self.pos_voltage = 0
         self.neg_voltage = 0
@@ -113,119 +49,34 @@ class Sink:
         self.voltage = float(pos_voltage) - float(neg_voltage)
 
 
-class Source:
+class Source(Component):
 
-    def __init__(self, refdes="", voltage="", output_net_name="", output_inductor_refdes=""):
+    def __init__(self, refdes, net_name, pins=None, part_name=None):
+        super().__init__(refdes, net_name, pins, part_name)
         self.refdes = refdes
-        self.voltage = voltage
-        self.output_net_name = output_net_name
-        self.output_inductor_refdes = output_inductor_refdes
-        self.power_net_name = ""
+        self.net_name = net_name
+        self.part_name = part_name
+        self.pins = pins
 
 
-class UserConfiguration:
-
-    def __init__(self, source=Source()):
-        """
-
-        :param source:
-        :type source:
-        """
-
-        self.reference_net_name = None
-        self.node_to_ground = None
-        self.source_cfg = []
-        if isinstance(source, list):
-            self.source_cfg.extend(source)
-        else:
-            self.source_cfg.append(source)
-
-    def load_project_cfg(self):
-        pass
-
-    def load_dcir_cfg(self, path=""):
-        """
-
-        :return:
-        :rtype:
-        """
-
-        with open(os.path.join(path, "configuration.json"), "r") as f:
-            json_obj = dict(json.load(f))
-            self.reference_net_name = json_obj["project_config"]["reference_net_name"]
-            self.source_cfg = json_obj
-
-            # for _, v in json_obj.items():
-            # v.output_net_name = v.output_net_name.replace(" ", "")
-            # v.output_inductor_refdes = v.output_inductor_refdes.replace(" ", "")
-            # self.source_cfg.append(v)
-
-        return True if len(self.source_cfg) else False
-
-    def create_default_config_file(self, path="", backup_dir="log"):
-        """
-
-        :return:
-        :rtype:
-        """
-        config_template = {
-            "project_config":
-                {
-                    "reference_net_name": "GND",
-                    "node_to_ground": "U3A1"
-                },
-
-            "sources": [
-                {
-                    "refdes": "U3A1",
-                    "voltage": 1,
-                    "output_net_name": "BST_V1P0_S0",
-                    "output_inductor_refdes": "",
-                },
-                {
-                    "refdes": "U3A1",
-                    "voltage": 3.3,
-                    "output_net_name": "",
-                    "output_inductor_refdes": "L3A1",
-                }
-            ]
-        }
-
-        json_obj = json.dumps(config_template, indent=4)
-        fpath = os.path.join(path, "configuration.json")
-        if os.path.isfile(fpath):
-            if not os.path.isdir(backup_dir):
-                os.mkdir(backup_dir)
-
-            current_time = datetime.now().strftime("%y%m%d-%H-%M-%S")
-            shutil.copyfile(fpath, os.path.join(backup_dir,"{}-{}".format(fpath, current_time)))
-
-        with open(fpath, "w", encoding='utf-8') as f:
-            f.write(json_obj)
-
-        return True if os.path.isfile(fpath) else False
-
-
-class SinkSourceCfg(Source):
+class PowerTreeConfig:
 
     @property
-    def cfg_id(self):
-        return "{}-{}-{}".format(self.refdes, self.output_net_name, self.output_inductor_refdes)
+    def id(self):
+        return "{}-{}".format(self.source.refdes, self.source.net_name)
 
-    def __init__(self, refdes="", voltage="", part_name="", output_net_name="", output_inductor_refdes=""):
-        super(SinkSourceCfg, self).__init__(refdes, voltage, output_net_name, output_inductor_refdes)
-        self.part_name = part_name
-        self.net_group = []
-        self.sinks = {}
+    @property
+    def nets(self):
+        nets = [self.source.net_name]
+        for i in self.sinks:
+            nets.append(i.net_name)
+        return nets
 
-    def add_sink(self, sink_class):
-        if not isinstance(sink_class, Sink):
-            print("{} is not an instance of class Sink".format(sink_class))
-            raise
-        self.sinks[sink_class.sink_id] = sink_class
-
-    def add_rlc(self):
-        pass
+    def __init__(self, voltage, ref_net):
+        self.voltage = voltage
+        self.source = None
+        self.ref_net = ref_net
+        self.sinks = []
 
     def to_json(self, path, display=False):
         tmp = {"powertree_id": self.cfg_id,
@@ -247,17 +98,12 @@ class SinkSourceCfg(Source):
 
 class CorePowerTree:
 
-    def __init__(self, layout_file_path, edb_version, cfg=UserConfiguration()):
+    def __init__(self, layout_file_path, edb_version):
         self.edb_version = edb_version
         self.layout_file_path = layout_file_path
 
-        self._cfg = cfg
-        """ansysem_root_dir = os.environ[self.ANSYSEM_ROOT[self.edbversion]]
-        self.anstranslator = os.path.join(ansysem_root_dir, "anstranslator.exe")
-        # self.pathToSIwaveNg = os.path.join(ansysem_root_dir, "siwave_ng.exe")"""
         self.h3d = None
 
-    def init_edb(self):
         start = time.time()
         self.appedb = Edb(edbpath=self.layout_file_path,
                           edbversion=self.edb_version)
@@ -266,110 +112,91 @@ class CorePowerTree:
         edb_nets = self.appedb.core_nets.nets
 
         if not len(edb_nets):
-            print(self._cfg.layout_file_path)
             raise Exception("No net exists in the design. Initialization failed. Please check edb file name")
         elif not len(edb_components):
             raise Exception("No component exists in the design. Initialization failed. Please check edb file name")
         else:
             print("{} components\n{} nets".format(len(edb_components), len(edb_nets)))
             timer(start, "initialization finished.")
-            return True
 
     def close_edb(self):
         self.appedb.close_edb()
 
-    def _find_vrm_output_net_name_from_inductor_refdes(self, sink_source_cfg=SinkSourceCfg()):
+    def get_nets_between_components(self, refdes_1, refdes_2):
 
-        if not isinstance(sink_source_cfg, SinkSourceCfg):
-            print("{} is not an instance of class SinkSourceCfg".format(sink_source_cfg))
+        comp_1_nets = self.appedb.core_components.get_component_net_connection_info(refdes_1)
+        comp_2_nets = self.appedb.core_components.get_component_net_connection_info(refdes_2)
+        net_intersection = set(comp_1_nets["net_name"]).intersection(set(comp_2_nets["net_name"]))
 
-        if not sink_source_cfg.output_inductor_refdes:
-            return
-
-        vrm_net_connection = self.appedb.core_components.get_component_net_connection_info(sink_source_cfg.refdes)
-        inductor_net_connection = self.appedb.core_components.get_component_net_connection_info(
-            sink_source_cfg.output_inductor_refdes)
-        net_intersection = set(vrm_net_connection["net_name"]).intersection(set(inductor_net_connection["net_name"]))
-        if not len(net_intersection):
-            print("Inductor {1} is not connected to VRM {0}".format(sink_source_cfg.refdes,
-                                                                    sink_source_cfg.output_inductor_refdes))
-            raise
-        elif len(net_intersection) == 1:
-            sink_source_cfg.output_net_name = list(net_intersection)[0]
-            print("Found VRM {} output net_name {} ".format(sink_source_cfg.refdes, sink_source_cfg.output_net_name))
-
+        if len(net_intersection) == 1:
+            return list(net_intersection)[0]
         else:
-            print("Both sides of inductor {1} are connected to VRM {0}. {2}".format(sink_source_cfg.refdes,
-                                                                                    sink_source_cfg.output_inductor_refdes,
-                                                                                    net_intersection))
-            raise
+            return list(net_intersection)
 
-    def extract_power_tree(self, sink_source_cfg=SinkSourceCfg(), ref_net_name="GND"):
-        if not isinstance(sink_source_cfg, SinkSourceCfg):
-            print("{} is not an instance of class SinkSourceCfg".format(sink_source_cfg))
-
+    def extract_power_tree(self, src_refdes, src_o_net_name, voltage, ref_net_name="GND"):
+        print("Extracting {}-{}".format(src_refdes, src_o_net_name))
+        powertree_cfg = PowerTreeConfig(voltage, ref_net_name)
         start = time.time()
 
-        print("Extracting {}".format(sink_source_cfg.cfg_id))
-        self._find_vrm_output_net_name_from_inductor_refdes(sink_source_cfg)
-
-        powertree_list, columns, net_group = self.appedb.core_nets.get_powertree(sink_source_cfg.output_net_name,
-                                                                                 [ref_net_name])
+        powertree_list, columns, net_group = self.appedb.core_nets.get_powertree(src_o_net_name,
+                                                                                 [ref_net_name]
+                                                                                 )
+        # powertree_list.keys =
         # ["refdes", "pin_name", "net_name", "component_type", "component_partname", "pin_list"]
-        sink_source_cfg.net_group.extend(net_group)
 
         for comp in powertree_list:
-            if comp[columns.index("component_type")] in ["IO", "IC", "Other"]:
-                if comp[columns.index("refdes")] == sink_source_cfg.refdes:
-                    continue
+            refdes = comp[columns.index("refdes")]
+            pin_name = comp[columns.index("pin_name")]
+            net_name = comp[columns.index("net_name")]
+            component_type = comp[columns.index("component_type")]
+            component_partname = comp[columns.index("component_partname")]
+            pin_list = comp[columns.index("pin_list")]
 
-                data = self.appedb.core_components.get_component_net_connection_info(comp[columns.index("refdes")])
+            if component_type in ["IO", "IC", "Other"]:
+                data = self.appedb.core_components.get_component_net_connection_info(refdes)
                 if not ref_net_name in data["net_name"]:
-                    print(comp[columns.index("refdes")], " is not connected to ref net")
-                    continue
+                    print(comp[columns.index("refdes")], " is not connected to ref net. Excluded")
 
-                s = Sink(refdes=comp[columns.index("refdes")],
-                         net_name=comp[columns.index("net_name")],
-                         part_name=comp[columns.index("component_partname")],
-                         pins=comp[columns.index("pin_list")],
-                         comp_type=comp[columns.index("component_type")],
-                         )
-                if not s.sink_id in sink_source_cfg.sinks:
-                    sink_source_cfg.add_sink(s)
-            else:
-                # TBD implemented
-                sink_source_cfg.add_rlc()
+                elif refdes == src_refdes:
+                    src = Source(src_refdes, src_o_net_name, pin_list, component_partname)
+                    powertree_cfg.source = src
+                else:
+                    sink = Sink(refdes, net_name, pin_list, component_partname)
 
-    def power_tree_cleaning(self):
-        for powertree_id, complist in self.POWER_TREE.items():
-            droplist = []
-            for label, row in complist.iterrows():
-                data = self.appedb.core_components.get_component_net_connection_info(row.refdes)
-                if not self.REF_NET in data["net_name"]:
-                    droplist.append(label)
-            self.POWER_TREE[powertree_id] = complist.drop(droplist)
+                    if not sink.id in [i.id for i in powertree_cfg.sinks]:
+                        powertree_cfg.sinks.append(sink)
 
-    def config_dcir(self, cfg=SinkSourceCfg(), ref_net_name="GND"):
+        return powertree_cfg
 
-        self.appedb.core_siwave.create_voltage_source_on_net(positive_component_name=cfg.refdes,
-                                                             positive_net_name=cfg.output_net_name,
-                                                             negative_component_name=cfg.refdes,
-                                                             negative_net_name=ref_net_name,
-                                                             voltage_value=float(cfg.voltage),
+    def config_dcir(self, power_tree_cfg):
+
+        ref_net = power_tree_cfg["ref_net"]
+        voltage = power_tree_cfg["voltage"]
+        source = power_tree_cfg["source"][0]
+        refdes = source["refdes"]
+        o_net = source["net_name"]
+        source_id = "{}-{}".format(refdes, o_net)
+
+        self.appedb.core_siwave.create_voltage_source_on_net(positive_component_name=refdes,
+                                                             positive_net_name=o_net,
+                                                             negative_component_name=refdes,
+                                                             negative_net_name=ref_net,
+                                                             voltage_value=float(voltage),
                                                              phase_value=0,
-                                                             source_name=cfg.cfg_id
+                                                             source_name=source_id
                                                              )
 
-        for sink_id, sink in cfg.sinks.items():
-            self.appedb.core_siwave.create_current_source_on_net(positive_component_name=sink.refdes,
-                                                                 positive_net_name=sink.net_name,
-                                                                 negative_component_name=sink.refdes,
-                                                                 negative_net_name=ref_net_name,
-                                                                 current_value=float(sink.current),
+        for sink in power_tree_cfg["sink"]:
+            sink_id = "{}-{}".format(sink["refdes"], sink["net_name"])
+            self.appedb.core_siwave.create_current_source_on_net(positive_component_name=sink["refdes"],
+                                                                 positive_net_name=sink["net_name"],
+                                                                 negative_component_name=sink["refdes"],
+                                                                 negative_net_name=ref_net,
+                                                                 current_value=float(sink["current"]),
                                                                  phase_value=0,
                                                                  source_name=sink_id)
 
-    def add_siwave_dc_analysis(self, name, accuracy_level, node_to_ground):
+    def add_siwave_dc_analysis(self, name, node_to_ground, accuracy_level):
         settings = self.appedb.core_siwave.get_siwave_dc_setup_template()
         settings.accuracy_level = accuracy_level
         settings.name = name
@@ -413,28 +240,3 @@ class CorePowerTree:
 
             timer(start, "Simulation is finished.")
         self.h3d.close_project()
-
-    def load_result(self, edb_name, path=""):
-        ced_path = os.path.join(path,
-                                edb_name + ".aedtresults",
-                                edb_name,
-                                "DV3_S2_V0",
-                                edb_name + ".ced",
-                                )
-        with open(ced_path, "r") as f:
-            text = f.readlines()
-
-        tmp_dict = {}
-        for line in text:
-            line = line.replace("\n", "").replace("\"", "").split(" ")
-            if line[-1] == "I":
-                tmp_dict[line[0]] = line
-
-        cols = ["comp_id", "net_name", "pos_voltage", "ref_net_name", "neg_voltage",
-                "parallel_R_current", "comp_type"]
-        return cols, tmp_dict
-
-
-if __name__ == "__main__":
-    app_powertree = CorePowerTree()
-    app_powertree.init_edb()
