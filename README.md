@@ -7,14 +7,6 @@ The Ansys Electronics Desktop supports Extracta Import from Cadence. Note that E
 a Cadence supplied executable and must be installed on your machine and on your executable
 path for this to work.
 
-DCIR_Automation extends existing DCIR workflow functionalities as below.
-
-1, Extract power trees from EDB by user provided voltage regulator module(VRM) reference designator(Refdes) together with VRM output net name or output inductor Refdes.
-
-2, List all sink components on power tree per VRM.
-
-3, Assign current to sink components from user defined local library.  
-
 # Getting Started
 1. Unzip the package to local disk. Here the package will be zipped in C:\jupyter_folder. Now you should have two files as below
 
