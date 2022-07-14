@@ -1,1 +1,0 @@
-c.NotebookApp.notebook_dir = 'C:\\jupyter_folder'
