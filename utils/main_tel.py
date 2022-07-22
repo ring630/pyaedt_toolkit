@@ -1,8 +1,8 @@
 import re
 import networkx as nx
 
-from main_edb import PowerTree, str2float
-
+from .main_edb import PowerTree
+from .power_rail import str2float
 
 class Component:
 
@@ -108,6 +108,7 @@ class PowerTreeSchematic(PowerTree):
     def __init__(self, tel_path,
                  power_rail_list,
                  bom="",
+                 nexxim_sch=False,
                  power_library_shared="",
                  power_library_local=""):
         self.tel_path = tel_path
@@ -117,9 +118,13 @@ class PowerTreeSchematic(PowerTree):
 
         self.power_rail_list = power_rail_list
 
-        self._run()
+        self._run(nexxim_sch=nexxim_sch)
 
     def _load_bom(self):
+        pass
+
+    def _export_all_comp(self):
+        #self.appedb.core_components.components
         pass
 
     def dcir_analysis_edb(self):
