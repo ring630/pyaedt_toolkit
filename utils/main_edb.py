@@ -6,99 +6,24 @@ import tempfile
 import matplotlib.pyplot as plt
 import networkx as nx
 from pyaedt import Edb, generate_unique_name
-
-
-def str2float(des_type, val):
-    if isinstance(val, float):
-        return val
-    if isinstance(val, int):
-        return val
-
-    removal_list = ["ohm", "Ohm", "ohms", "Ohms"]
-
-    res_value_dict = {"k": "e3", "K": "e3",
-                      "MEG": "e6", "M": "e6", "meg": "e6"
-                      }
-
-    val = val.replace(",", ".")
-    if des_type == "resistor":
-        for i in removal_list:
-            val = val.replace(i, "")
-
-        for i, j in res_value_dict.items():
-            val = val.replace(i, j)
-
-    return float(val)
-
-
-class PowerRail:
-
-    @property
-    def fname_power(self):
-        return self.prim_node_name + ".csv"
-
-    @property
-    def figure_save_name(self):
-        return self.prim_node_name + ".png"
-
-    def __init__(self,
-                 prim_refdes_pin,
-                 voltage=1.2,
-                 negative_pin=None,
-                 sense_pin=None,
-                 sec_refdes_pin_list=[],
-                 sink_power_info=""
-                 ):
-        self.prim_refdes_pin = prim_refdes_pin
-        self.sense_pin = sense_pin
-        self.voltage = voltage
-        self.prim_node_name = ""
-        self.sec_refdes_pin_list = sec_refdes_pin_list
-        self.sec_node_name_list = []
-        self.sink_power_info = sink_power_info
-
-        self.sinks = {}
-
-    def export_sink_info(self):
-        data = ["Node Name, Part Name, Value\n"]
-        for _, s in self.sinks.items():
-            data.append(",".join([s.node_name, s.part_name, ""])+"\n")
-
-        fpath = os.path.join("temp", self.fname_power)
-        with open(fpath, "w") as f:
-            f.writelines(data)
-
-    def import_sink_info(self):
-        if self.sink_power_info:
-            with open(self.sink_power_info) as f:
-                info = f.readlines()
-                info.pop(0)
-                for i in info:
-                    node_name, part_name, value = i.split(",")
-                    value = value.replace("\n", "")
-                    self.sinks[node_name].current = value
-
-class Sink:
-
-    def __init__(self, refdes, net_name, pin_list, node_name, current=0, part_name=""):
-        self.refdes = refdes
-        self.part_name = part_name
-        self.net_name = net_name
-        self.pin_list = pin_list
-        self.current = current
-        self.node_name = node_name
-
+from pyaedt import Desktop, Circuit
+from .power_rail import str2float, Sink
 
 class PowerTree:
     EDB_VERSION = "2022.1"
 
     TP_PRIFIX = ["TP"]
+
+    EXCLUE_CONNECTOR = False
     CONNECTOR_PRIFIX = ["X"]
-    FUSE_PRIFIX = ["F"]
+    REPLACE_BY_RES = ["F"]
 
     DC_COMP_TYPE = ["resistor", "inductor"]
 
     GROUND = ["GND"]
+    COMP_EXCLUDE_LIST = []
+    COMP_PIN_EXCLUDE_LIST = []
+
     _PWR_NETWORK = nx.Graph()
     _COMPONENTS = {}
 
@@ -151,28 +76,19 @@ class PowerTree:
         else:
             return self._PWR_NETWORK
 
-    def __init__(self, edb_path, power_rail_list, bom="", power_library_shared="", power_library_local=""):
+    def __init__(self, edb_path, power_rail_list, bom="", power_library_shared="", power_library_local="",
+                 nexxim_sch=False):
 
         self.bom = bom
 
-        tmpfold = tempfile.gettempdir()
-        temp_folder = os.path.join(tmpfold, generate_unique_name("Example"))
-        if not os.path.exists(temp_folder):
-            os.makedirs(temp_folder)
-        targetfolder = os.path.join(temp_folder, "Galileo.aedb")
-        if os.path.exists(targetfolder):
-            shutil.rmtree(targetfolder)
-
-        shutil.copytree(edb_path, targetfolder)
-
-        self.edb_path = targetfolder
-        self.appedb = Edb(self.edb_path, edbversion=self.EDB_VERSION)
+        self.edb_path = edb_path
+        self.appedb = Edb(edb_path, edbversion=self.EDB_VERSION)
         print("Number of components {}".format(len(self.appedb.core_components.components)))
 
         self.power_rail_list = power_rail_list
-        self._run()
+        self._run(nexxim_sch)
 
-    def _run(self):
+    def _run(self, nexxim_sch):
         # edb update
         self._load_bom()
         self._replace_fuse_with_resistor_from_edb()
@@ -180,6 +96,12 @@ class PowerTree:
         # power tree network creation
         self._remove_node_to_ground_from_tree()
         self._remove_test_points_from_tree()
+
+        if self.EXCLUE_CONNECTOR:
+            self._remove_connectors_from_tree()
+
+        self._remove_excluded_components_from_tree()
+        self._remove_excluded_component_pins_from_tree()
         self._remove_capacitors_from_tree()
         self._remove_resistors_from_tree()
 
@@ -191,6 +113,8 @@ class PowerTree:
 
             pos = nx.spring_layout(sub_graph, seed=100)
             self.visualize_power_tree_pdf(sub_graph, pos, power_rail)
+            if nexxim_sch:
+                self.visualize_power_tree_nexxim(sub_graph, pos, power_rail)
             dcir_config_list.append(power_rail)
 
     def _load_bom(self):
@@ -215,7 +139,6 @@ class PowerTree:
                 remove_list.append(node_name)
         for i in remove_list:
             self.power_network.remove_node(i)
-            # print("removed ", i)
 
     def _remove_resistors_from_tree(self, threshold=10):
         remove_list = []
@@ -232,6 +155,33 @@ class PowerTree:
         for node_name, data in self.power_network.nodes.data():
             if re.match("({}).*$".format("|".join(self.TP_PRIFIX)), data["refdes"]):
                 remove_list.append(node_name)
+        for i in remove_list:
+            self.power_network.remove_node(i)
+
+    def _remove_connectors_from_tree(self):
+        remove_list = []
+        for node_name, data in self.power_network.nodes.data():
+            if re.match("({}).*$".format("|".join(self.CONNECTOR_PRIFIX)), data["refdes"]):
+                remove_list.append(node_name)
+        for i in remove_list:
+            self.power_network.remove_node(i)
+
+    def _remove_excluded_components_from_tree(self):
+        remove_list = []
+        for node_name, data in self.power_network.nodes.data():
+            if data["refdes"] in self.COMP_EXCLUDE_LIST:
+                remove_list.append(node_name)
+        for i in remove_list:
+            self.power_network.remove_node(i)
+
+    def _remove_excluded_component_pins_from_tree(self):
+        remove_list = []
+        for comp_pin in self.COMP_PIN_EXCLUDE_LIST:
+            refdes, pin = comp_pin.split(".")
+            for node_name, data in self.power_network.nodes.data():
+                if data["refdes"] == refdes:
+                    if pin in data["pin_list"]:
+                        remove_list.append(node_name)
         for i in remove_list:
             self.power_network.remove_node(i)
 
@@ -275,10 +225,10 @@ class PowerTree:
                 sub_graph.nodes[node_name]["current"] = 0.001
                 refdes = attr["refdes"]
                 power_rail.sinks[node_name] = Sink(refdes=refdes,
-                                             part_name=self.components[refdes].partname,
-                                             net_name=attr["net_name"],
-                                             pin_list=attr["pin_list"],
-                                             node_name=node_name)
+                                                   part_name=self.components[refdes].partname,
+                                                   net_name=attr["net_name"],
+                                                   pin_list=attr["pin_list"],
+                                                   node_name=node_name)
 
         # connect RLC terminals again
         edge_list = {}
@@ -339,7 +289,6 @@ class PowerTree:
             if attr["net_name"] == "DC_COMP":
                 new_node_name = "{}-{}".format(n1.split("-")[1], n2)
                 node_removal_list.append([n1, n2, new_node_name])
-                print(n1, n2, new_node_name)
         for i in node_removal_list:
             n1, n2, new_node_name = i
             sub_graph.add_node(new_node_name, dcir_type="dc_comp", refdes=sub_graph.nodes[n1]["refdes"],
@@ -384,11 +333,6 @@ class PowerTree:
                                )
         for n, p in pos.items():
             x, y = p
-            """try:
-                refdes, net_name = n.split("-")
-            except:
-                refdes = n.split("-")[0]
-                net_name = n.split("-")[1:]"""
             attr = graph.nodes.data()[n]
             refdes = attr["refdes"]
             if attr["dcir_type"] == "sink":
@@ -406,11 +350,58 @@ class PowerTree:
                 txt = "{}".format(refdes)
                 ax.text(x, y, txt, fontsize=6, horizontalalignment="left")
 
-        #plt.show()
-        plt.savefig(os.path.join("temp", power_rail.figure_save_name))
+        png_fpath = os.path.join("temp", power_rail.figure_save_name)
+        plt.savefig(png_fpath)
+        print("* Save power tree png to", os.path.join("temp", power_rail.figure_save_name))
 
-    def visualize_power_tree_nexxim(self):
-        pass
+    def visualize_power_tree_nexxim(self, G, pos, power_rail, ratio=0.15):
+
+        non_graphical = os.getenv("PYAEDT_NON_GRAPHICAL", "False").lower() in ("true", "1", "t")
+        new_thread = False
+        Desktop(self.EDB_VERSION, non_graphical, new_thread)
+        cir = Circuit(designname=power_rail.prim_node_name)
+
+        for node_name, p in pos.items():
+            x, y = p * ratio
+            dcir_type = G.nodes[node_name]["dcir_type"]
+            comp_name = node_name.replace("-", "_")
+            if dcir_type == "net":
+                pass
+            elif dcir_type == "dc_comp":
+                res = cir.modeler.schematic.create_resistor(comp_name, 0.001, [x, y])
+                n1, n2 = G.nodes[node_name]["net_name"]
+                cir.modeler.components.create_page_port(n1, res.pins[0].location, angle=180)
+                cir.modeler.components.create_page_port(n2, res.pins[1].location)
+
+            else:
+                try:
+                    refdes, net_name = node_name.split("-")
+                except:
+                    refdes = node_name.split("-")[0]
+                    net_name = node_name.split("-")[1:]
+
+                if dcir_type == "source":
+                    voltage = power_rail.voltage
+                    source = cir.modeler.schematic.create_voltage_dc(comp_name, voltage, [x, y])
+                    cir.modeler.components.create_page_port(net_name, source.pins[1].location)
+                    cir.modeler.components.create_page_port("0", source.pins[0].location)
+                else:
+                    current = power_rail.sinks[node_name].current
+                    sink = cir.modeler.schematic.create_current_dc(comp_name, current, [x, y])
+                    cir.modeler.components.create_page_port(net_name, sink.pins[1].location)
+                    cir.modeler.components.create_page_port("0", sink.pins[0].location)
+                    cir.modeler.components.create_voltage_probe(comp_name, sink.pins[1].location)
+
+        for e in G.edges:
+            u, v = e
+            p1 = [i * ratio for i in pos[u]]
+            p2 = [i * ratio for i in pos[v]]
+
+            if G.nodes[u]["dcir_type"] == "source" or G.nodes[v]["dcir_type"] == "source":
+                color = 255
+            else:
+                color = 0
+            cir.modeler.components.create_line([p1, p2], color)
 
     def dcir_analysis_edb(self, dcir_config):
         pass
