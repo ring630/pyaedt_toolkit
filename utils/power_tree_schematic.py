@@ -1,7 +1,6 @@
 import re
-import networkx as nx
 
-from .main_edb import PowerTree
+from .power_tree_base import PowerTreeBase
 from .power_rail import str2float
 
 class Component:
@@ -10,11 +9,11 @@ class Component:
     def res_value(self):
         return self.value
 
-    def __init__(self, refdes, cmp_type, part_number, value=""):
+    def __init__(self, refdes, cmp_type, partname, value=""):
         self.refdes = refdes
         self.type = cmp_type
         self.value = value
-        self.part_number = part_number
+        self.partname = partname
         self.is_enabled = True
 
 
@@ -103,29 +102,12 @@ class NetList:
         return list(edb_rats.values())
 
 
-class PowerTreeSchematic(PowerTree):
+class PowerTreeSchematic(PowerTreeBase):
 
-    def __init__(self, tel_path,
-                 power_rail_list,
-                 bom="",
-                 nexxim_sch=False,
-                 power_library_shared="",
-                 power_library_local=""):
-        self.tel_path = tel_path
-        self.bom = bom
-
+    def __init__(self, fpath, power_rail_list, bom="", nexxim_sch=False):
+        self.tel_path = fpath
         self.appedb = NetList(self.tel_path)
-
-        self.power_rail_list = power_rail_list
-
-        self._run(nexxim_sch=nexxim_sch)
+        PowerTreeBase.__init__(self, power_rail_list, bom, nexxim_sch)
 
     def _load_bom(self):
-        pass
-
-    def _export_all_comp(self):
-        #self.appedb.core_components.components
-        pass
-
-    def dcir_analysis_edb(self):
         pass

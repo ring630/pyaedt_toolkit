@@ -52,9 +52,9 @@ class PowerRail:
         self.sinks = {}
 
     def export_sink_info(self):
-        data = ["Node Name, Part Name, Value\n"]
+        data = ["Node Name, Part Name, Value, pins\n"]
         for _, s in self.sinks.items():
-            data.append(",".join([s.node_name, s.part_name, ""]) + "\n")
+            data.append(",".join([s.node_name, s.part_name, "", "-".join(s.pin_list)]) + "\n")
 
         fpath = os.path.join("temp", self.fname_power)
         with open(fpath, "w") as f:
