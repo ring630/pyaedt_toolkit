@@ -4,7 +4,7 @@
 https://www.anaconda.com/
 
 ### How to install packages
-Open anaconda prompt from win start -> Anaconda3 -> Anaconda Prompt
+Open anaconda prompt from ``win start -> Anaconda3 -> Anaconda Prompt``
 ````
 $ pip install pyaedt
 $ pip install networkx
