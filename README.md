@@ -17,7 +17,7 @@ tel netlist. There are two classes
 
 2, class PowerTreeSchematic takes tel netlist as input.
 
-## PowerTreeSchematic exmaple
+## PowerTreeTel exmaple
 
 ````python
 from utils.power_tree_schematic import PowerTreeTel
