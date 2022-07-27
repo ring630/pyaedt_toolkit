@@ -91,4 +91,5 @@ Extracted sinks are saved in csv file in ``temp`` folder.
 
 <img width="239" alt="image" src="https://user-images.githubusercontent.com/27995305/181278226-f43a7bd6-934e-4fc8-8bde-cd40fd079dc2.png">
 
+<img width="917" alt="image" src="https://user-images.githubusercontent.com/27995305/181278392-a13c45a2-0363-46b8-b480-00136f8573b8.png">
 
