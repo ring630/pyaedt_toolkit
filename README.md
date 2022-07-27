@@ -2,7 +2,9 @@
 
 [How to run python script in spyder](https://github.com/ring630/Material_Characterization/blob/main/docs/HOW_TO_RUN_PYAEDT_IN_SPYDER.md)
 
-Apart from PyAEDT, there are 
+Apart from PyAEDT, please execute below command to install required packages
+
+$ pip install networkx
 
 # Introduction
 
