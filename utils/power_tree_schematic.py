@@ -17,7 +17,7 @@ class Component:
         self.is_enabled = True
 
 
-class NetList:
+class TelNetList:
 
     @property
     def core_components(self):
@@ -102,11 +102,11 @@ class NetList:
         return list(edb_rats.values())
 
 
-class PowerTreeSchematic(PowerTreeBase):
+class PowerTreeTel(PowerTreeBase):
 
     def __init__(self, fpath, power_rail_list, bom="", nexxim_sch=False):
         self.tel_path = fpath
-        self.appedb = NetList(self.tel_path)
+        self.appedb = TelNetList(self.tel_path)
         PowerTreeBase.__init__(self, power_rail_list, bom, nexxim_sch)
 
     def _load_bom(self):
