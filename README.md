@@ -1,11 +1,20 @@
 # 1 Quick Start
 
-[How to run python script in spyder](https://github.com/ring630/Material_Characterization/blob/main/docs/HOW_TO_RUN_PYAEDT_IN_SPYDER.md)
+### Download and install anaconda distribution of Python 
+https://www.anaconda.com/
 
-Apart from PyAEDT, please execute below command to install required packages
-
+### How to install packages
+Open anaconda prompt from win start -> Anaconda3 -> Anaconda Prompt
+````
+$ pip install pyaedt
 $ pip install networkx
-
+````
+### How to update PyAEDT
+````
+$ pip install -U pyaedt
+````
+### How to run python script in spyder
+[Click here](https://github.com/ring630/Material_Characterization/blob/main/docs/HOW_TO_RUN_PYAEDT_IN_SPYDER.md)
 # Introduction
 
 This project is built on top of
