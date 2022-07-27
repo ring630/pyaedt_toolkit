@@ -80,7 +80,8 @@ class PowerTreeBase:
     def __init__(self, power_rail_list, bom="", nexxim_sch=False):
 
         self.bom = bom
-
+        if not os.path.isdir("temp"):
+            os.mkdir("temp")
         print("Number of components {}".format(len(self.appedb.core_components.components)))
 
         self.power_rail_list = power_rail_list
