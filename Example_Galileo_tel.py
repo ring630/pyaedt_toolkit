@@ -5,7 +5,7 @@ PowerTreeTel.TP_PRIFIX = ["TP", "INC"]
 PowerTreeTel.REPLACE_BY_RES = ["F"]
 PowerTreeTel.CONNECTOR_PRIFIX = ["X", "J"]
 PowerTreeTel.GROUND = ["GND"]
-PowerTreeTel.COMP_EXCLUDE_LIST = []
+PowerTreeTel.COMP_EXCLUDE_LIST = ["EU1"]
 PowerTreeTel.COMP_PIN_EXCLUDE_LIST = ["U2A5.E1"]
 
 PowerTreeTel.EXCLUE_CONNECTOR = True

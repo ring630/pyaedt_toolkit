@@ -26,8 +26,11 @@ for refdes, obj in edbapp.core_components.components.items():
         package[partname] = line
     else:
         line = package[partname]
-        # if len(line.split(",")[-1]) > 75:
-        #    line = line + ","
+
+        if len(line.split(",")[-1]) > 75:
+            #line = line + ",\n"
+            pass
+
         line = "{} {}".format(line, refdes)
         package[partname] = line
 
@@ -42,7 +45,8 @@ for refdes, comp_obj in edbapp.core_components.components.items():
         else:
             line = nets[net_name]
             if len(line.split(",")[-1]) > 75:
-                line = line + ","
+                pass
+                #line = line + ",\n"
         line = "{} {}".format(line, new_comp)
         nets[net_name] = line
 
