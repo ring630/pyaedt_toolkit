@@ -33,7 +33,7 @@ PowerTreeTel.TP_PRIFIX = ["TP", "INC"]
 Define fuse refdes naming convention. All fuses will be replaced by a resistor
 
 ````
-PowerTreeTel.REPLACE_BY_RES = ["F"]
+PowerTreeTel.REPLACE_BY_RES = ["F"]§
 ````
 
 Define connector refdes naming convention
