@@ -41,14 +41,22 @@ tel netlist. There are two classes
 from utils.power_tree_schematic import PowerTreeTel
 from utils.power_rail import PowerRail
 
-PowerTreeTel.TP_PRIFIX = ["TP", "INC"] # Define test point refdes naming convention
-PowerTreeTel.REPLACE_BY_RES = ["F"] # Define fuse refdes naming convention. All fuses will be replaced by a resistor
-PowerTreeTel.CONNECTOR_PRIFIX = ["X", "J"] # Define connector refdes naming convention
-PowerTreeTel.GROUND = ["GND"] # Define ground net name
-PowerTreeTel.COMP_EXCLUDE_LIST = [] # Exclude components by refdes explicitly 
-PowerTreeTel.COMP_PIN_EXCLUDE_LIST = ["U2A5.E1"] # Exclude component pin explicitly
 
-PowerTreeTel.EXCLUDE_CONNECTOR = True # Whether to exlucde connector from power tree
+# Define test point refdes naming convention
+PowerTreeTel.TP_PRIFIX = ["TP", "INC"] 
+# Define fuse refdes naming convention. All fuses will be replaced by a resistor
+PowerTreeTel.REPLACE_BY_RES = ["F"] 
+# Define connector refdes naming convention
+PowerTreeTel.CONNECTOR_PRIFIX = ["X", "J"]
+# Define ground net name
+PowerTreeTel.GROUND = ["GND"] 
+# Exclude components by refdes explicitly
+PowerTreeTel.COMP_EXCLUDE_LIST = []  
+# Exclude component pin explicitly
+PowerTreeTel.COMP_PIN_EXCLUDE_LIST = ["U2A5.E1"] 
+
+# Whether to exlucde connector from power tree
+PowerTreeTel.EXCLUDE_CONNECTOR = True 
 
 # Example on Galileo board
 
