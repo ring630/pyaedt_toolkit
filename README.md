@@ -1,9 +1,9 @@
-# 1 Quick Start
+# 1, Quick Start
 
-### Download and install miniconda 
+### 1.1, Download and install miniconda 
 https://docs.conda.io/en/latest/miniconda.html
 
-### Create Python environment
+### 1.2, Create Python environment
 Open anaconda prompt from ``win start -> Anaconda3 -> Anaconda Prompt``
 
 It is recommended to install PyAEDT in a clean virtual environment.
@@ -20,9 +20,9 @@ How to update PyAEDT to the latest version.
 ````
 $ pip install -U pyaedt
 ````
-### How to run python script in spyder
+### 1.3, How to run python script in spyder
 [Click here](https://github.com/ring630/Material_Characterization/blob/main/docs/HOW_TO_RUN_PYAEDT_IN_SPYDER.md)
-# Introduction
+# 2, Introduction
 
 This project is built on top of
 [PyAEDT](https://github.com/pyansys/PyAEDT). DCIR_Automation is licenced under
@@ -35,7 +35,7 @@ tel netlist. There are two classes
 
 2, class PowerTreeSchematic takes tel netlist as input.
 
-## PowerTreeTel exmaple
+# 2.1, PowerTreeTel exmaple
 
 ````python
 from utils.power_tree_schematic import PowerTreeTel
@@ -113,3 +113,4 @@ The same power tree is created in Nexxim for DC analysis.
 
 <img width="917" alt="image" src="https://user-images.githubusercontent.com/27995305/181278392-a13c45a2-0363-46b8-b480-00136f8573b8.png">
 
+## 2.2 PowerTreeEdb example
