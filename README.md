@@ -1,15 +1,22 @@
 # 1 Quick Start
 
-### Download and install anaconda distribution of Python 
-https://www.anaconda.com/
+### Download and install miniconda 
+https://docs.conda.io/en/latest/miniconda.html
 
-### How to install packages
+### Create Python environment
 Open anaconda prompt from ``win start -> Anaconda3 -> Anaconda Prompt``
+
+It is recommended to install PyAEDT in a clean virtual environment.
+````
+$ conda create -n pyaedt_env python=3.10 # Python version can be specified when create virtual environment
+$ activate pyaedt_env
+````
+Install PyAEDT and relevant packages
 ````
 $ pip install pyaedt
 $ pip install networkx
 ````
-### How to update PyAEDT
+How to update PyAEDT to the latest version.
 ````
 $ pip install -U pyaedt
 ````
@@ -44,7 +51,7 @@ PowerTreeTel.TP_PRIFIX = ["TP", "INC"]
 Define fuse refdes naming convention. All fuses will be replaced by a resistor
 
 ````
-PowerTreeTel.REPLACE_BY_RES = ["F"]§
+PowerTreeTel.REPLACE_BY_RES = ["F"]
 ````
 
 Define connector refdes naming convention
