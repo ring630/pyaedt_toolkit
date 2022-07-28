@@ -47,7 +47,8 @@ PowerTreeTel.CONNECTOR_PRIFIX = ["X", "J"] # Define connector refdes naming conv
 PowerTreeTel.GROUND = ["GND"] # Define ground net name
 PowerTreeTel.COMP_EXCLUDE_LIST = [] # Exclude components by refdes explicitly 
 PowerTreeTel.COMP_PIN_EXCLUDE_LIST = ["U2A5.E1"] # Exclude component pin explicitly
-PowerTreeTel.EXCLUE_CONNECTOR = True # Whether to exlucde connector from power tree
+
+PowerTreeTel.EXCLUDE_CONNECTOR = True # Whether to exlucde connector from power tree
 
 # Example on Galileo board
 
