@@ -12,9 +12,8 @@ PowerTreeTel.EXCLUE_CONNECTOR = True
 
 targetfile = r"galileo_example\galileo.tel"
 print(targetfile)
-PowerTreeTel(
+app = PowerTreeTel(
     fpath=targetfile,
-    bom="galileo_exmaple/bom_galileo.csv",
     power_rail_list=[
         PowerRail(
             prim_refdes_pin="U3A1.37", voltage=1.0,
@@ -23,5 +22,7 @@ PowerTreeTel(
 
         PowerRail(prim_refdes_pin="U3A1.14", voltage=3.3),
     ],
-    nexxim_sch=False
 )
+
+app.load_bom("galileo_exmaple/bom_galileo.csv",)
+app.run(nexxim_sch=True)

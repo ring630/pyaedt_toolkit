@@ -27,11 +27,19 @@ class PowerRail:
 
     @property
     def fname_power(self):
-        return self.prim_node_name + ".csv"
+        return self._prim_node_name + ".csv"
 
     @property
     def figure_save_name(self):
-        return self.prim_node_name + ".png"
+        return self._prim_node_name + ".png"
+
+    @property
+    def prim_source_refdes(self):
+        return self._prim_refdes_pin.split(".")[0]
+
+    @property
+    def source_net_name(self):
+        return self._prim_node_name.split("-")[-1]
 
     def __init__(self,
                  prim_refdes_pin,
@@ -41,10 +49,10 @@ class PowerRail:
                  sec_refdes_pin_list=[],
                  sink_power_info=""
                  ):
-        self.prim_refdes_pin = prim_refdes_pin
+        self._prim_refdes_pin = prim_refdes_pin
         self.sense_pin = sense_pin
         self.voltage = voltage
-        self.prim_node_name = ""
+        self._prim_node_name = ""
         self.sec_refdes_pin_list = sec_refdes_pin_list
         self.sec_node_name_list = []
         self.sink_power_info = sink_power_info

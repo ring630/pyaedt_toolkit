@@ -104,10 +104,10 @@ class TelNetList:
 
 class PowerTreeTel(PowerTreeBase):
 
-    def __init__(self, fpath, power_rail_list, bom="", nexxim_sch=False):
+    def __init__(self, fpath, power_rail_list):
         self.tel_path = fpath
         self.appedb = TelNetList(self.tel_path)
-        PowerTreeBase.__init__(self, power_rail_list, bom, nexxim_sch)
+        PowerTreeBase.__init__(self, power_rail_list)
 
-    def _load_bom(self):
+    def load_bom(self, bom_file):
         pass
