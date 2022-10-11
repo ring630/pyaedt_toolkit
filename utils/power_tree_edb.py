@@ -4,15 +4,19 @@ from .edb_preprocessing import EdbPreprocessing
 from pyaedt import Edb, Hfss3dLayout, generate_unique_name
 
 
-class PowerTreeEdb(PowerTreeBase, EdbPreprocessing):
+class PowerTreeEdb(PowerTreeBase):
 
-    def __init__(self, fpath, power_rail_list, bom="", nexxim_sch=False):
+    def __init__(self, fpath, edb_version="2022.2"):
         self.edb_path = fpath
         self.aedb_fpath = os.path.join(r"C:\Users\hzhou\Downloads\_from_pyaedt", generate_unique_name("powertree")+
                                        ".aedb")
 
-        EdbPreprocessing.__init__(self, fpath, self.EDB_VERSION)
-        PowerTreeBase.__init__(self, power_rail_list, bom, nexxim_sch)
+        self.appedb = Edb(fpath, edbversion=edb_version)
+
+        PowerTreeBase.__init__(self, self.appedb, edb_version)
+
+    def load_bom(self, bom_file):
+        self.appedb.core_components.import_bom(bom_file, delimiter=",")
 
     def aedt_def_fpath(self):
         return os.path.join(self.aedb_fpath, "edb.def")
@@ -23,9 +27,9 @@ class PowerTreeEdb(PowerTreeBase, EdbPreprocessing):
     def setup_dcir(self):
         for cfg in self.dcir_config_list:
             voltage = cfg.voltage
-            source_refdes = cfg.prim_source_refdes
+            source_refdes = cfg.source_refdes
             source_net_name = cfg.source_net_name
-            source_name = cfg._prim_node_name
+            source_name = cfg._node_name
 
             self.appedb.core_siwave.create_voltage_source_on_net(
                 source_refdes, source_net_name, None, None, voltage, 0, source_name

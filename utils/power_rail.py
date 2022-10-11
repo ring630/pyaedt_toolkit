@@ -27,36 +27,33 @@ class PowerRail:
 
     @property
     def fname_power(self):
-        return self._prim_node_name + ".csv"
+        return self._node_name + ".csv"
 
     @property
     def figure_save_name(self):
-        return self._prim_node_name + ".png"
+        return self._node_name + ".png"
 
     @property
-    def prim_source_refdes(self):
-        return self._prim_refdes_pin.split(".")[0]
+    def source_refdes(self):
+        return self._refdes_pin.split(".")[0]
 
     @property
     def source_net_name(self):
-        return self._prim_node_name.split("-")[-1]
+        return self._node_name.split("-")[-1]
 
     def __init__(self,
-                 prim_refdes_pin,
+                 refdes_pin,
                  voltage=1.2,
-                 negative_pin=None,
                  sense_pin=None,
-                 sec_refdes_pin_list=[],
-                 sink_power_info=""
+                 sink_power_info="",
+                 node_to_ground=True,
                  ):
-        self._prim_refdes_pin = prim_refdes_pin
+        self._refdes_pin = refdes_pin
         self.sense_pin = sense_pin
         self.voltage = voltage
-        self._prim_node_name = ""
-        self.sec_refdes_pin_list = sec_refdes_pin_list
-        self.sec_node_name_list = []
-        self.sink_power_info = sink_power_info
+        self._node_name = ""
 
+        self.sink_power_info = sink_power_info
         self.sinks = {}
 
     def export_sink_info(self):
@@ -78,6 +75,10 @@ class PowerRail:
                     value = value.replace("\n", "")
                     self.sinks[node_name].current = value
 
+
+class PowerRailMultiVrm(PowerRail):
+    def __init__(self):
+        self.sec_refdes_pin_list = None
 
 class Sink:
 

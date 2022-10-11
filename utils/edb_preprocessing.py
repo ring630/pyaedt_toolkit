@@ -7,7 +7,7 @@ class EdbPreprocessing:
         self.appedb = Edb(fpath, edbversion=edb_version)
 
     def load_bom(self, bom_file):
-        self.appedb.core_components.update_rlc_from_bom(bom_file, delimiter=",")
+        self.appedb.core_components.import_bom(bom_file, delimiter=",")
 
 if __name__ == '__main__':
     edb_file = get_galileo_exmaple_board()
