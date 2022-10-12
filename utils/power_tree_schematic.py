@@ -1,6 +1,7 @@
 import re
+import pandas as pd
 
-from .power_tree_base import PowerTreeBase
+from .dcir_power_tree import DCIRPowerTree
 from .power_rail import str2float
 
 class Component:
@@ -9,31 +10,33 @@ class Component:
     def res_value(self):
         return self.value
 
-    def __init__(self, refdes, cmp_type, partname, value=""):
+    def __init__(self, refdes, cmp_type, part_name, value=""):
         self.refdes = refdes
         self.type = cmp_type
         self.value = value
-        self.partname = partname
+        self.partname = part_name
         self.is_enabled = True
 
 
-class TelNetList:
+class NetList:
 
     @property
     def core_components(self):
         return self
 
-    def __init__(self, tel_file):
-        self._tel_file = tel_file
+    @property
+    def _rats_by_index(self):
+        return {i["refdes"][0]: i for i in self._rats}
+
+    def __init__(self, file_path):
+        self._tel_file = file_path
         self._rats = None
         self.components = {}
 
         self._get_rats_from_netlist()
+        self._get_components_from_netlist()
 
-
-        self._build_netlist()
-
-    def _build_netlist(self):
+    def _get_components_from_netlist(self):
         txt_lines = open(self._tel_file).read().replace(",\n", " ")
 
         start = re.search(r"\$PACKAGES", txt_lines).end()
@@ -66,8 +69,35 @@ class TelNetList:
                 else:
                     self.components[refdes] = Component(refdes, "other", pn)
 
-    def database_preprocess(self):
+    def import_bom(self):
         pass
+
+    def import_comp_definition(self, file_path):
+        remove_list = []
+        df = pd.read_csv(file_path, index_col=0)
+        for part_name, val in df.iterrows():
+            for refdes, obj in self.components.items():
+                if obj.partname == part_name:
+                    if val.Type == "Testpoint":
+                        remove_list.append(refdes)
+                    else:
+                        obj.type = val.Type
+                        obj.value = val.Value
+        for refdes in remove_list:
+            self.components.pop(refdes)
+            self._rats.remove(self._rats_by_index[refdes])
+            print(refdes, " is removed")
+
+    def remove_unmounted_components(self, file_path):
+        remove_list = []
+        df = pd.read_csv(file_path, index_col=0)
+        for refdes_remove, val in df.iterrows():
+            self.components.pop(refdes_remove)
+            for idx, i in enumerate(self._rats):
+                if i["refdes"][0] == refdes_remove:
+                    remove_list.append(i)
+        for i in remove_list:
+            self._rats.remove(i)
 
     def get_rats(self):
         return self._rats
@@ -112,12 +142,12 @@ class TelNetList:
         self._rats = list(edb_rats.values())
 
 
-class PowerTreeTel(PowerTreeBase):
+class PowerTreeTel(DCIRPowerTree):
 
     def __init__(self, fpath, edb_version="2022.2"):
         self.tel_path = fpath
-        self.appedb = TelNetList(self.tel_path)
-        PowerTreeBase.__init__(self, self.appedb, edb_version)
+        self.appedb = NetList(self.tel_path)
+        DCIRPowerTree.__init__(self, self.appedb, edb_version)
 
     def load_bom(self, bom_file):
         pass

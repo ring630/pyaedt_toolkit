@@ -10,7 +10,7 @@ from .power_rail import str2float, Sink
 from utils.power_rail import PowerRail
 
 
-class PowerTreeBase:
+class DCIRPowerTree:
     EDB_VERSION = None
     DEFAULT_SINK_CURRENT = 0.001
 
@@ -31,14 +31,14 @@ class PowerTreeBase:
 
     @property
     def components(self):
-        return self._pedb.core_components.components
+        return self.edb.core_components.components
 
     @property
     def power_network(self):
         if not len(self._PWR_NETWORK.nodes()):
             self._PWR_NETWORK = nx.Graph()
             net_comp_ratlist = {}
-            for i in self._pedb.core_components.get_rats():
+            for i in self.edb.core_components.get_rats():
                 refdes = i["refdes"][0]
                 pins = i["pin_name"]
                 connected_nets = i["net_name"]
@@ -50,7 +50,7 @@ class PowerTreeBase:
                     pin = [pins[idx] for idx, n in enumerate(connected_nets) if n == net_name]
                     node_name = "-".join([r, net_name])
 
-                    comp_type = self._pedb.core_components.components[r].type.lower()
+                    comp_type = self.edb.core_components.components[r].type.lower()
                     self._PWR_NETWORK.add_node(node_name,
                                                pin_list=pin,
                                                refdes=r,
@@ -63,7 +63,7 @@ class PowerTreeBase:
                     else:
                         net_comp_ratlist[net_name].append(node_name)
                 # add edge between RL pins
-                if not self._pedb.core_components.components[refdes].is_enabled:
+                if not self.edb.core_components.components[refdes].is_enabled:
                     pass
                 elif not len(comp_all_nodes) == 2:
                     pass
@@ -78,14 +78,14 @@ class PowerTreeBase:
         else:
             return self._PWR_NETWORK
 
-    def __init__(self, _pedb, edb_version):
+    def __init__(self, edb, edb_version):
         self.EDB_VERSION = edb_version
-        self._pedb = _pedb
+        self.edb = edb
         self.dcir_config_list = []
 
         if not os.path.isdir("temp"):
             os.mkdir("temp")
-        print("Number of components {}".format(len(self._pedb.core_components.components)))
+        print("Number of components {}".format(len(self.edb.core_components.components)))
 
         self.power_rail_list = []
 
@@ -110,13 +110,13 @@ class PowerTreeBase:
 
         # power tree network creation
         self._remove_node_to_ground_from_tree()
-        self._remove_test_points_from_tree()
+        #self._remove_test_points_from_tree()
 
-        if self.EXCLUE_CONNECTOR:
-            self._remove_connectors_from_tree()
+        #if self.EXCLUE_CONNECTOR:
+        #    self._remove_connectors_from_tree()
 
-        self._remove_excluded_components_from_tree()
-        self._remove_excluded_component_pins_from_tree()
+        #self._remove_excluded_components_from_tree()
+        #self._remove_excluded_component_pins_from_tree()
         self._remove_capacitors_from_tree()
         self._remove_resistors_from_tree()
 
@@ -161,7 +161,7 @@ class PowerTreeBase:
         for node_name, data in self.power_network.nodes.data():
             if data["comp_type"] == "resistor":
                 refdes = data["refdes"]
-                if str2float("resistor", self._pedb.core_components.components[refdes].res_value) > threshold:
+                if str2float("resistor", self.edb.core_components.components[refdes].res_value) > threshold:
                     remove_list.append(node_name)
         for i in remove_list:
             self.power_network.remove_node(i)
@@ -372,6 +372,7 @@ class PowerTreeBase:
 
         png_fpath = os.path.join("temp", power_rail.figure_save_name)
         plt.tight_layout()
+        plt.show()
         plt.savefig(png_fpath)
         print("* Save power tree png to", os.path.join("temp", power_rail.figure_save_name))
 

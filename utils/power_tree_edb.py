@@ -1,10 +1,10 @@
 import os
-from .power_tree_base import PowerTreeBase
+from .dcir_power_tree import DCIRPowerTree
 from .edb_preprocessing import EdbPreprocessing
 from pyaedt import Edb, Hfss3dLayout, generate_unique_name
 
 
-class PowerTreeEdb(PowerTreeBase):
+class PowerTreeEdb(DCIRPowerTree):
 
     def __init__(self, fpath, edb_version="2022.2"):
         self.edb_path = fpath
@@ -13,7 +13,7 @@ class PowerTreeEdb(PowerTreeBase):
 
         self.appedb = Edb(fpath, edbversion=edb_version)
 
-        PowerTreeBase.__init__(self, self.appedb, edb_version)
+        DCIRPowerTree.__init__(self, self.appedb, edb_version)
 
     def load_bom(self, bom_file):
         self.appedb.core_components.import_bom(bom_file, delimiter=",")
