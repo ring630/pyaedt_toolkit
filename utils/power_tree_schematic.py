@@ -25,8 +25,12 @@ class TelNetList:
 
     def __init__(self, tel_file):
         self._tel_file = tel_file
-
+        self._rats = None
         self.components = {}
+
+        self._get_rats_from_netlist()
+
+
         self._build_netlist()
 
     def _build_netlist(self):
@@ -62,7 +66,13 @@ class TelNetList:
                 else:
                     self.components[refdes] = Component(refdes, "other", pn)
 
+    def database_preprocess(self):
+        pass
+
     def get_rats(self):
+        return self._rats
+
+    def _get_rats_from_netlist(self):
         ############################
         # Find $NET block in tel file
         txt_lines = open(self._tel_file).read().replace(",\n", " ")
@@ -99,7 +109,7 @@ class TelNetList:
                     edb_rats[refdes]["pin_name"].append(pin)
                     edb_rats[refdes]["net_name"].append(net_name)
 
-        return list(edb_rats.values())
+        self._rats = list(edb_rats.values())
 
 
 class PowerTreeTel(PowerTreeBase):
