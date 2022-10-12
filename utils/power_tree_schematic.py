@@ -81,17 +81,19 @@ class NetList:
                     if val.Type == "Testpoint":
                         remove_list.append(refdes)
                     else:
+                        print("update {}, {} -> {}, {} -> {}".format(refdes, obj.type, val.Type, obj.value, val.Value))
                         obj.type = val.Type
                         obj.value = val.Value
         for refdes in remove_list:
             self.components.pop(refdes)
             self._rats.remove(self._rats_by_index[refdes])
-            print(refdes, " is removed")
+            print("Test point ", refdes, " is removed")
 
     def remove_unmounted_components(self, file_path):
         remove_list = []
         df = pd.read_csv(file_path, index_col=0)
         for refdes_remove, val in df.iterrows():
+            print(refdes_remove, "is removed")
             self.components.pop(refdes_remove)
             for idx, i in enumerate(self._rats):
                 if i["refdes"][0] == refdes_remove:

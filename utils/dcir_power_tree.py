@@ -104,7 +104,7 @@ class DCIRPowerTree:
         self.power_rail_list.append(power_rail)
         pass
 
-    def run(self, nexxim_sch):
+    def run(self, pdf_or_aedt="pdf"):
         # edb update
         self._replace_comp_with_resistor_from_edb()
 
@@ -126,8 +126,9 @@ class DCIRPowerTree:
             power_rail.import_sink_info()
 
             pos = nx.spring_layout(sub_graph, seed=100)
-            self.visualize_power_tree_pdf(sub_graph, pos, power_rail)
-            if nexxim_sch:
+            if pdf_or_aedt == "pdf":
+                self.visualize_power_tree_pdf(sub_graph, pos, power_rail)
+            else:
                 self.visualize_power_tree_nexxim(sub_graph, pos, power_rail)
             self.dcir_config_list.append(power_rail)
 
@@ -430,6 +431,8 @@ class DCIRPowerTree:
                 color = 0
             cir.modeler.components.create_line([p1, p2], color)
 
-    def _export_all_comp(self):
-        # self._pedb.core_components.components
-        pass
+    def close_aedt(self):
+        non_graphical = os.getenv("PYAEDT_NON_GRAPHICAL", "False").lower() in ("true", "1", "t")
+        new_thread = False
+        destop = Desktop(self.EDB_VERSION, non_graphical, new_thread)
+        destop.release_desktop()
