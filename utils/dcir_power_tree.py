@@ -106,10 +106,10 @@ class DCIRPowerTree:
 
     def run(self, pdf_or_aedt="pdf"):
         # edb update
-        self._replace_comp_with_resistor_from_edb()
+        #self._replace_comp_with_resistor_from_edb()
 
         # power tree network creation
-        self._remove_node_to_ground_from_tree()
+        #self._remove_node_to_ground_from_tree()
         #self._remove_test_points_from_tree()
 
         #if self.EXCLUE_CONNECTOR:
@@ -117,8 +117,8 @@ class DCIRPowerTree:
 
         #self._remove_excluded_components_from_tree()
         #self._remove_excluded_component_pins_from_tree()
-        self._remove_capacitors_from_tree()
-        self._remove_resistors_from_tree()
+        #self._remove_capacitors_from_tree()
+        #self._remove_resistors_from_tree()
 
         for power_rail in self.power_rail_list:
             sub_graph, power_rail = self.build_power_tree(power_rail)
@@ -132,7 +132,7 @@ class DCIRPowerTree:
                 self.visualize_power_tree_nexxim(sub_graph, pos, power_rail)
             self.dcir_config_list.append(power_rail)
 
-    def _remove_node_to_ground_from_tree(self):
+    """def _remove_node_to_ground_from_tree(self):
         remove_list = []
         for node_name, data in self.power_network.nodes.data():
             if data["net_name"] in self.GROUND:
@@ -200,7 +200,7 @@ class DCIRPowerTree:
                     if pin in data["pin_list"]:
                         remove_list.append(node_name)
         for i in remove_list:
-            self.power_network.remove_node(i)
+            self.power_network.remove_node(i)"""
 
     def build_power_tree(self, power_rail):
 
@@ -373,8 +373,8 @@ class DCIRPowerTree:
 
         png_fpath = os.path.join("temp", power_rail.figure_save_name)
         plt.tight_layout()
-        plt.show()
         plt.savefig(png_fpath)
+        plt.show()
         print("* Save power tree png to", os.path.join("temp", power_rail.figure_save_name))
 
     def visualize_power_tree_nexxim(self, G, pos, power_rail, ratio=0.15):

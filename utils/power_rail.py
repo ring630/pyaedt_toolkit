@@ -71,7 +71,8 @@ class PowerRail:
                 info = f.readlines()
                 info.pop(0)
                 for i in info:
-                    node_name, part_name, value = i.split(",")
+                    print(i.split(","))
+                    node_name, part_name, value = i.split(",")[:3]
                     value = value.replace("\n", "")
                     self.sinks[node_name].current = value
 
