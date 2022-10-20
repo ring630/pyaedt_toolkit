@@ -8,26 +8,24 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from pyaedt import Desktop, Circuit, Edb
 from .power_rail import str2float, Sink
-from utils.power_rail import PowerRail
 
-from utils.dcir_config import DCIRConfig
+from utils.dcir_config import DCIRConfig, IVComp
 from utils.edb_to_tel import EdbToNetlist
 from utils.netlist_process import NetList
 
 
 class DCIRPowerTree:
-
     _PWR_NETWORK = nx.Graph()
     _COMPONENTS = {}
 
     def __init__(self, cfg_file_path):
         self.netlist = None
-        self.cfg = DCIRConfig(cfg_file_path)
+        self.dcir_config = DCIRConfig(cfg_file_path)
 
-        self.edb_version = str(self.cfg.edb_version)
+        self.edb_version = str(self.dcir_config.edb_version)
         self.project_folder = os.path.dirname(os.path.abspath(cfg_file_path))
-        if self.cfg.layout_file_name.endswith(".aedb"):
-            self.edb_name = self.cfg.layout_file_name
+        if self.dcir_config.layout_file_name.endswith(".aedb"):
+            self.edb_name = self.dcir_config.layout_file_name
             self.edb_path = os.path.join(self.project_folder, self.edb_name)
 
             netlist_name = self.edb_name.replace(".aedb", ".tel")
@@ -41,21 +39,21 @@ class DCIRPowerTree:
                     f.writelines(lines)
         else:
             print("******* Netlist already exists.")
-            netlist_path = os.path.join(self.project_folder, self.cfg.layout_file_name)
+            netlist_path = os.path.join(self.project_folder, self.dcir_config.layout_file_name)
 
         self.netlist = NetList(netlist_path)
-            #self.dcir_config_list = []
+        # self.dcir_config_list = []
 
         self.output_folder = os.path.join(self.project_folder, "result")
         if not os.path.isdir(self.output_folder):
             os.mkdir(self.output_folder)
 
-        self.power_rail_list = []
     """
     @property
     def components(self):
         return self.edb.core_components.components
     """
+
     @property
     def power_network(self):
         if not len(self._PWR_NETWORK.nodes()):
@@ -100,40 +98,25 @@ class DCIRPowerTree:
             return self._PWR_NETWORK
         else:
             return self._PWR_NETWORK
-    """
-    def add_power_rail(self,
-                       refdes_pin,
-                       voltage=1.2,
-                       sense_pin=None,
-                       sink_power_info="",
-                       node_to_ground=True,
-                       ):
-        power_rail = PowerRail(refdes_pin,
-                               voltage,
-                               sense_pin,
-                               sink_power_info,
-                               node_to_ground)
-        self.power_rail_list.append(power_rail)
-        pass
-    """
+
     def run(self, pdf_or_aedt="pdf"):
         # edb update
-        #self._replace_comp_with_resistor_from_edb()
+        # self._replace_comp_with_resistor_from_edb()
 
         # power tree network creation
-        #self._remove_node_to_ground_from_tree()
-        #self._remove_test_points_from_tree()
+        # self._remove_node_to_ground_from_tree()
+        # self._remove_test_points_from_tree()
 
-        #if self.EXCLUE_CONNECTOR:
+        # if self.EXCLUE_CONNECTOR:
         #    self._remove_connectors_from_tree()
 
-        #self._remove_excluded_components_from_tree()
-        #self._remove_excluded_component_pins_from_tree()
-        #self._remove_capacitors_from_tree()
-        #self._remove_resistors_from_tree()
+        # self._remove_excluded_components_from_tree()
+        # self._remove_excluded_component_pins_from_tree()
+        # self._remove_capacitors_from_tree()
+        # self._remove_resistors_from_tree()
 
-        for power_rail in self.power_rail_list:
-            sub_graph, power_rail = self.build_power_tree(power_rail)
+        for k, cfg in self.dcir_config.power_configs.items():
+            sub_graph, power_rail = self.build_power_tree(cfg)
             power_rail.export_sink_info()
             power_rail.import_sink_info()
 
@@ -142,7 +125,7 @@ class DCIRPowerTree:
                 self.visualize_power_tree_pdf(sub_graph, pos, power_rail)
             else:
                 self.visualize_power_tree_nexxim(sub_graph, pos, power_rail)
-            self.dcir_config_list.append(power_rail)
+            # self.dcir_config_list.append(power_rail)
 
     """def _remove_node_to_ground_from_tree(self):
         remove_list = []
@@ -214,14 +197,14 @@ class DCIRPowerTree:
         for i in remove_list:
             self.power_network.remove_node(i)"""
 
-    def build_power_tree(self, power_rail):
+    def build_power_tree(self, cfg):
 
         # Find primary source node name
-        refdes_pin = power_rail._refdes_pin
-        refdes, pin = refdes_pin.split(".")
+        refdes = cfg.main_v_comp
+        pin = cfg.main_v_comp_pin
         for node_name, attr in self.power_network.nodes.data():
             if refdes == attr["refdes"] and pin in attr["pin_list"]:
-                power_rail._node_name = node_name
+                cfg._node_name = node_name
         """
         # Find secondary source node name
         for i in power_rail.sec_refdes_pin_list:
@@ -231,7 +214,7 @@ class DCIRPowerTree:
                     power_rail.sec_node_name_list.append(node_name)
         """
         # Find power rail network
-        prim_node = power_rail._node_name
+        prim_node = cfg._node_name
         sub_graph = None
         for i in nx.connected_components(self.power_network):
             if prim_node in i:
@@ -242,11 +225,11 @@ class DCIRPowerTree:
         for node_name, attr in sub_graph.nodes.data():
             if node_name == prim_node:
                 sub_graph.nodes[node_name]["dcir_type"] = "source"
-                sub_graph.nodes[node_name]["voltage"] = power_rail.voltage
+                sub_graph.nodes[node_name]["voltage"] = cfg.voltage
 
-            #elif node_name in power_rail.sec_refdes_pin_list:
-                #sub_graph.nodes[node_name]["dcir_type"] = "source"
-                #sub_graph.nodes[node_name]["voltage"] = power_rail.voltage
+            # elif node_name in power_rail.sec_refdes_pin_list:
+            # sub_graph.nodes[node_name]["dcir_type"] = "source"
+            # sub_graph.nodes[node_name]["voltage"] = power_rail.voltage
 
             elif sub_graph.nodes[node_name]["comp_type"] in self.DC_COMP_TYPE:
                 sub_graph.nodes[node_name]["dcir_type"] = "dc_comp"
@@ -254,12 +237,14 @@ class DCIRPowerTree:
                 sub_graph.nodes[node_name]["dcir_type"] = "sink"
                 sub_graph.nodes[node_name]["current"] = 0.001
                 refdes = attr["refdes"]
-                power_rail.sinks[node_name] = Sink(refdes=refdes,
-                                                   part_name=self.components[refdes].partname,
-                                                   net_name=attr["net_name"],
-                                                   pin_list=attr["pin_list"],
-                                                   node_name=node_name,
-                                                   current=self.DEFAULT_SINK_CURRENT)
+                i_comp = IVComp(refdes,
+                                part_name=self.netlist.components[refdes].partname,
+                                net_name=attr["net_name"],
+                                pin_list=attr["pin_list"],
+                                value=0.001
+                                )
+                i_comp._node_name = node_name
+                cfg.i_comp[node_name] = i_comp
 
         # connect RLC terminals again
         edge_list = {}
@@ -284,14 +269,14 @@ class DCIRPowerTree:
 
             if attr["comp_type"] in self.DC_COMP_TYPE:
                 node_list[net_name]["dc_comp"].append(node_name)
-            elif node_name == power_rail._node_name:
+            elif node_name == cfg._node_name:
                 node_list[net_name]["dc_comp"].append(node_name)
             else:
                 node_list[net_name]["sink"].append(node_name)
 
         # Adjust secondary source if applicable
         # Connect prim and sec sources
-        #for node_name in power_rail.sec_node_name_list:
+        # for node_name in power_rail.sec_node_name_list:
         #    sub_graph.nodes[node_name]["dcir_type"] = "source"
         #    sub_graph.nodes[node_name]["voltage"] = power_rail.voltage
         #    sub_graph.add_edge(power_rail._node_name, node_name, net_name="multi_phase")
@@ -331,7 +316,7 @@ class DCIRPowerTree:
             sub_graph.remove_node(n1)
             sub_graph.remove_node(n2)
 
-        return sub_graph, power_rail
+        return sub_graph, cfg
 
     def visualize_power_tree_pdf(self, graph, pos, power_rail):
         node_color = []

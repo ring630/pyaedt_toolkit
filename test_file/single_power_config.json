@@ -1,0 +1,9 @@
+{
+  "v_comp": {
+    "0": {
+     "refdes": "U3A1",
+      "power_pin": 14,
+      "value": 3.3
+    }
+  }
+}

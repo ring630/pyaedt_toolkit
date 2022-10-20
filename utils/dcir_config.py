@@ -1,86 +1,68 @@
 import json
-from collections import OrderedDict
+
+
+class IVComp:
+    def __init__(self, refdes=None, power_pin=None, value=None, net_name=None, part_name=None,pin_list=None):
+        self.refdes = refdes
+        self.power_pin = power_pin
+        self.value = value
+        self.net_name = net_name
+        self.part_name = part_name
+        self.pin_list = pin_list
+
+        self._node_name = None
+
+
+    def to_dict(self):
+        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+
+    def import_dict(self, data):
+        for k, v in data.items():
+            k = k.lower()
+            self.__dict__[k] = v
+        return self
 
 
 class SinglePowerConfig:
-
-    @property
-    def node_name(self):
-        return "{}-{}".format(self._refdes, self._power_pin)
-
-    @property
-    def net_name(self):
-        v_comps = list(self.v_comp.values())
-        if len(v_comps):
-            return v_comps[0]["Net_name"]
-        else:
-            return ""
-
-    @property
-    def fname_power(self):
-        return self.node_name + ".csv"
-
-    @property
-    def figure_save_name(self):
-        return self.node_name + ".png"
-
-    @property
-    def refdes(self):
-        if not len(self.v_comp):
-            return list(self.v_comp.values())[0]["Refdes"]
-
-    @property
-    def power_pin(self):
-        if not len(self.v_comp):
-            return list(self.v_comp.values())[0]["Power_pin"]
-
-    @property
-    def voltage(self):
-        if not len(self.v_comp):
-            return list(self.v_comp.values())[0]["Voltage"]
-
-    def __init__(self, refdes=None, power_pin=None, voltage=None):
-
+    def __init__(self):
+        self.voltage = None
+        self.main_v_comp = None
+        self.main_v_comp_pin = None
         self.v_comp = {}
         self.i_comp = {}
-        self.add_power(refdes, power_pin, voltage, None, None)
 
-    def add_power(self, refdes, power_pin, value, net_name, pin_list):
-        name = "{}-{}".format(refdes, net_name)
-        self.v_comp[name] = {"Refdes": refdes,
-                             "Power_pin": power_pin,
-                             "Value": value,
-                             "Net_name": net_name,
-                             "Pin_list": pin_list}
-
-    def add_current(self, refdes, power_pin, value, net_name, pin_list):
-        name = "{}-{}".format(refdes, net_name)
-        self.i_comp[name] = {"Refdes": refdes,
-                             "Power_pin": power_pin,
-                             "Value": value,
-                             "Net_name": net_name,
-                             "Pin_list": pin_list}
-
-    def export(self):
-        data = {
-            "NAME": self.node_name,
-            "NET_NAME": self.net_name,
-            "Voltage": self.voltage,
-            "V_COMP": {},
-            "I_COMP": {}
-        }
-        def iter_power(i, data_dict):
-            for idx, val in i.items():
-                if not isinstance(val, dict):
-                    data_dict[idx] = val
+    def to_dict(self):
+        def find_recur(x, data):
+            _data = data
+            for k, val in x.__dict__.items():
+                if isinstance(x, dict):
+                    find_recur(val, _data[k])
+                elif isinstance(val, IVComp):
+                    _data[k] = val.to_dict()
                 else:
-                    data_dict[idx] = {}
-                    iter_power(val, data_dict[idx])
-            return data_dict
+                    _data[k] = val
+            return _data
+        data = {}
+        return find_recur(self, data)
 
-        iter_power(self.i_comp, data["V_COMP"])
-        iter_power(self.i_comp, data["I_COMP"])
-        return data
+    def import_dict(self, fpath):
+        def find_recur(data):
+            for k, val in data.items():
+                k = k.lower()
+                if k not in ["v_comp", "i_comp"]:
+                    self.__dict__[k] = val
+                else:
+                    for k1, val1 in val.items():
+                        self.__dict__[k][k1] = IVComp().import_dict(val1)
+        if isinstance(fpath, dict):
+            data = fpath
+        else:
+            with open(fpath, "r") as f:
+                data = json.loads(f.read())
+        find_recur(data)
+        self.voltage = list(self.v_comp.values())[0].value
+        self.main_v_comp = list(self.v_comp.values())[0].refdes
+        self.main_v_comp_pin = list(self.v_comp.values())[0].power_pin
 
 
 class DCIRConfig:
@@ -90,25 +72,25 @@ class DCIRConfig:
         self.gnd_net_name = ""
         self.removal_list = []
         self.comp_definition = {}
-        self.power_config = []
+        self.power_configs = {}
 
         self.import_config(cfg_file_path)
 
-    def add_single_power(self, refdes, power_pin, voltage):
-        self.power_config.append(SinglePowerConfig(refdes, power_pin, voltage))
-
     def import_config(self, file_path):
+        def find_recur(data):
+            for k, val in data.items():
+                k = k.lower()
+                if not k == "power_configs":
+                    self.__dict__[k] = val
+                else:
+                    for k1, val1 in val.items():
+                        sp = SinglePowerConfig()
+                        sp.import_dict(val1)
+                        self.__dict__[k][k1] = sp
+
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.loads(f.read())
-        for key, value in data.items():
-            if not key == "power_config":
-                self.__dict__[key] = value
-            else:
-                sp = SinglePowerConfig()
-                for iv_comp in value:
-                    for k, v in iv_comp.items():
-                        sp.__dict__[k] = v
-                self.power_config.append(sp)
+        find_recur(data)
 
     def export_config(self, file_path):
         cfg = {key: value for key, value in self.__dict__.items()}
@@ -119,10 +101,3 @@ class DCIRConfig:
 
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False, indent=4)
-
-
-if __name__ == '__main__':
-    cfg = DCIRConfig()
-    cfg.add_single_power(1, 2, 3)
-    c = cfg.export_config("Input_config.json")
-
