@@ -63,6 +63,7 @@ class SinglePowerConfig:
         self.voltage = list(self.v_comp.values())[0].value
         self.main_v_comp = list(self.v_comp.values())[0].refdes
         self.main_v_comp_pin = list(self.v_comp.values())[0].power_pin
+        self._node_name = list(self.v_comp.values())[0]._node_name
 
 
 class DCIRConfig:

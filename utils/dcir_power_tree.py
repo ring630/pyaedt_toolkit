@@ -59,7 +59,7 @@ class DCIRPowerTree:
         if not len(self._PWR_NETWORK.nodes()):
             self._PWR_NETWORK = nx.Graph()
             net_comp_ratlist = {}
-            for i in self.edb.core_components.get_rats():
+            for i in self.netlist.core_components.get_rats():
                 refdes = i["refdes"][0]
                 pins = i["pin_name"]
                 connected_nets = i["net_name"]
@@ -71,7 +71,7 @@ class DCIRPowerTree:
                     pin = [pins[idx] for idx, n in enumerate(connected_nets) if n == net_name]
                     node_name = "-".join([r, net_name])
 
-                    comp_type = self.edb.core_components.components[r].type.lower()
+                    comp_type = self.netlist.core_components.components[r].type.lower()
                     self._PWR_NETWORK.add_node(node_name,
                                                pin_list=pin,
                                                refdes=r,
@@ -84,7 +84,7 @@ class DCIRPowerTree:
                     else:
                         net_comp_ratlist[net_name].append(node_name)
                 # add edge between RL pins
-                if not self.edb.core_components.components[refdes].is_enabled:
+                if not self.netlist.core_components.components[refdes].is_enabled:
                     pass
                 elif not len(comp_all_nodes) == 2:
                     pass
@@ -100,119 +100,25 @@ class DCIRPowerTree:
             return self._PWR_NETWORK
 
     def run(self, pdf_or_aedt="pdf"):
-        # edb update
-        # self._replace_comp_with_resistor_from_edb()
-
-        # power tree network creation
-        # self._remove_node_to_ground_from_tree()
-        # self._remove_test_points_from_tree()
-
-        # if self.EXCLUE_CONNECTOR:
-        #    self._remove_connectors_from_tree()
-
-        # self._remove_excluded_components_from_tree()
-        # self._remove_excluded_component_pins_from_tree()
-        # self._remove_capacitors_from_tree()
-        # self._remove_resistors_from_tree()
 
         for k, cfg in self.dcir_config.power_configs.items():
-            sub_graph, power_rail = self.build_power_tree(cfg)
-            power_rail.export_sink_info()
-            power_rail.import_sink_info()
+            sub_graph, cfg = self.build_power_tree(cfg)
 
             pos = nx.spring_layout(sub_graph, seed=100)
             if pdf_or_aedt == "pdf":
-                self.visualize_power_tree_pdf(sub_graph, pos, power_rail)
+                self.visualize_power_tree_pdf(sub_graph, pos, cfg)
             else:
-                self.visualize_power_tree_nexxim(sub_graph, pos, power_rail)
+                self.visualize_power_tree_nexxim(sub_graph, pos, cfg)
             # self.dcir_config_list.append(power_rail)
-
-    """def _remove_node_to_ground_from_tree(self):
-        remove_list = []
-        for node_name, data in self.power_network.nodes.data():
-            if data["net_name"] in self.GROUND:
-                remove_list.append(node_name)
-        for i in remove_list:
-            self.power_network.remove_node(i)
-
-    def _replace_comp_with_resistor_from_edb(self):
-        remove_list = []
-        for node_name, data in self.power_network.nodes.data():
-            if re.match("({}).*$".format("|".join(self.TP_PRIFIX)), data["refdes"]):
-                remove_list.append(node_name)
-        for i in remove_list:
-            self.power_network.remove_node(i)
-        # self.REPLACE_BY_RES
-
-    def _remove_capacitors_from_tree(self):
-        remove_list = []
-        for node_name, data in self.power_network.nodes.data():
-            if data["comp_type"] == "capacitor":
-                remove_list.append(node_name)
-        for i in remove_list:
-            self.power_network.remove_node(i)
-
-    def _remove_resistors_from_tree(self, threshold=10):
-        remove_list = []
-        for node_name, data in self.power_network.nodes.data():
-            if data["comp_type"] == "resistor":
-                refdes = data["refdes"]
-                if str2float("resistor", self.edb.core_components.components[refdes].res_value) > threshold:
-                    remove_list.append(node_name)
-        for i in remove_list:
-            self.power_network.remove_node(i)
-
-    def _remove_test_points_from_tree(self):
-        remove_list = []
-        for node_name, data in self.power_network.nodes.data():
-            if re.match("({}).*$".format("|".join(self.TP_PRIFIX)), data["refdes"]):
-                remove_list.append(node_name)
-        for i in remove_list:
-            self.power_network.remove_node(i)
-
-    def _remove_connectors_from_tree(self):
-        remove_list = []
-        for node_name, data in self.power_network.nodes.data():
-            if re.match("({}).*$".format("|".join(self.CONNECTOR_PRIFIX)), data["refdes"]):
-                remove_list.append(node_name)
-        for i in remove_list:
-            self.power_network.remove_node(i)
-
-    def _remove_excluded_components_from_tree(self):
-        remove_list = []
-        for node_name, data in self.power_network.nodes.data():
-            if data["refdes"] in self.COMP_EXCLUDE_LIST:
-                remove_list.append(node_name)
-        for i in remove_list:
-            self.power_network.remove_node(i)
-
-    def _remove_excluded_component_pins_from_tree(self):
-        remove_list = []
-        for comp_pin in self.COMP_PIN_EXCLUDE_LIST:
-            refdes, pin = comp_pin.split(".")
-            for node_name, data in self.power_network.nodes.data():
-                if data["refdes"] == refdes:
-                    if pin in data["pin_list"]:
-                        remove_list.append(node_name)
-        for i in remove_list:
-            self.power_network.remove_node(i)"""
 
     def build_power_tree(self, cfg):
 
         # Find primary source node name
         refdes = cfg.main_v_comp
-        pin = cfg.main_v_comp_pin
+        pin = str(cfg.main_v_comp_pin)
         for node_name, attr in self.power_network.nodes.data():
             if refdes == attr["refdes"] and pin in attr["pin_list"]:
                 cfg._node_name = node_name
-        """
-        # Find secondary source node name
-        for i in power_rail.sec_refdes_pin_list:
-            refdes, pin = i.split(".")
-            for node_name, attr in self.power_network.nodes.data():
-                if refdes == attr["refdes"] and pin in attr["pin_list"]:
-                    power_rail.sec_node_name_list.append(node_name)
-        """
         # Find power rail network
         prim_node = cfg._node_name
         sub_graph = None
@@ -231,7 +137,7 @@ class DCIRPowerTree:
             # sub_graph.nodes[node_name]["dcir_type"] = "source"
             # sub_graph.nodes[node_name]["voltage"] = power_rail.voltage
 
-            elif sub_graph.nodes[node_name]["comp_type"] in self.DC_COMP_TYPE:
+            elif sub_graph.nodes[node_name]["comp_type"] in ["resistor", "inductor"]:
                 sub_graph.nodes[node_name]["dcir_type"] = "dc_comp"
             else:
                 sub_graph.nodes[node_name]["dcir_type"] = "sink"
@@ -249,7 +155,7 @@ class DCIRPowerTree:
         # connect RLC terminals again
         edge_list = {}
         for node_name, attr in sub_graph.nodes.data():
-            if attr["comp_type"] not in self.DC_COMP_TYPE:
+            if attr["comp_type"] not in ["resistor", "inductor"]:
                 continue
             else:
                 refdes = attr["refdes"]
@@ -267,7 +173,7 @@ class DCIRPowerTree:
             if net_name not in node_list:
                 node_list[net_name] = {"dc_comp": [], "sink": []}
 
-            if attr["comp_type"] in self.DC_COMP_TYPE:
+            if attr["comp_type"] in ["resistor", "inductor"]:
                 node_list[net_name]["dc_comp"].append(node_name)
             elif node_name == cfg._node_name:
                 node_list[net_name]["dc_comp"].append(node_name)
@@ -318,7 +224,7 @@ class DCIRPowerTree:
 
         return sub_graph, cfg
 
-    def visualize_power_tree_pdf(self, graph, pos, power_rail):
+    def visualize_power_tree_pdf(self, graph, pos, cfg):
         node_color = []
         node_size = []
         for n, _ in graph.nodes.data():
@@ -350,8 +256,8 @@ class DCIRPowerTree:
             attr = graph.nodes.data()[n]
             refdes = attr["refdes"]
             if attr["dcir_type"] == "sink":
-                part_name = self.components[refdes].partname
-                current = power_rail.sinks[n].current
+                part_name = self.netlist.core_components.components[refdes].partname
+                current = cfg.sinks[n].current
                 txt = "{}\n{}\nCurrent={}\n".format(refdes, part_name, current)
                 ax.text(x, y, txt, color="g", fontsize=10, horizontalalignment="left")
 
@@ -368,11 +274,11 @@ class DCIRPowerTree:
                 ax.text(x, y, txt, fontsize=6, horizontalalignment="left",
                         bbox=dict(facecolor='none', edgecolor='black', pad=2.0))
 
-        png_fpath = os.path.join("temp", power_rail.figure_save_name)
+        png_fpath = os.path.join("temp", cfg.figure_save_name)
         plt.tight_layout()
         plt.savefig(png_fpath)
         plt.show()
-        print("* Save power tree png to", os.path.join("temp", power_rail.figure_save_name))
+        print("* Save power tree png to", os.path.join("temp", cfg.figure_save_name))
 
     def visualize_power_tree_nexxim(self, G, pos, power_rail, ratio=0.15):
 
