@@ -42,6 +42,7 @@ class DCIRPowerTree:
             netlist_path = os.path.join(self.project_folder, self.dcir_config.layout_file_name)
 
         self.netlist = NetList(netlist_path)
+        self.netlist.remove_unmounted_components()
         # self.dcir_config_list = []
 
         self.output_folder = os.path.join(self.project_folder, "result")
