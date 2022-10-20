@@ -1,6 +1,6 @@
 import os
 from .dcir_power_tree import DCIRPowerTree
-from .edb_preprocessing import EdbPreprocessing
+from .edb_preprocessing import LayoutPreProcess
 from pyaedt import Edb, Hfss3dLayout, generate_unique_name
 
 

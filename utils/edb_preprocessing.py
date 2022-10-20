@@ -1,7 +1,7 @@
 from pyaedt import Edb
-from .get_galileo_example_board import get_galileo_exmaple_board
+from bak.get_galileo_example_board import get_galileo_exmaple_board
 
-class EdbPreprocessing:
+class LayoutPreProcess:
 
     def __init__(self, fpath, edb_version):
         self.appedb = Edb(fpath, edbversion=edb_version)
@@ -9,7 +9,8 @@ class EdbPreprocessing:
     def load_bom(self, bom_file):
         self.appedb.core_components.import_bom(bom_file, delimiter=",")
 
+
 if __name__ == '__main__':
     edb_file = get_galileo_exmaple_board()
-    app = EdbPreprocessing(edb_file, "2022.2")
+    app = LayoutPreProcess(edb_file, "2022.2")
     app.load_bom("bom.csv")

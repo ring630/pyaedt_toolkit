@@ -1,3 +1,4 @@
+import logging
 import os
 import itertools as it
 import shutil
@@ -5,34 +6,56 @@ import re
 import tempfile
 import matplotlib.pyplot as plt
 import networkx as nx
-from pyaedt import Desktop, Circuit
+from pyaedt import Desktop, Circuit, Edb
 from .power_rail import str2float, Sink
 from utils.power_rail import PowerRail
 
+from utils.dcir_config import DCIRConfig
+from utils.edb_to_tel import EdbToNetlist
+from utils.netlist_process import NetList
+
 
 class DCIRPowerTree:
-    EDB_VERSION = None
-    DEFAULT_SINK_CURRENT = 0.001
-
-    TP_PRIFIX = ["TP"]
-
-    EXCLUE_CONNECTOR = False
-    CONNECTOR_PRIFIX = ["X"]
-    REPLACE_BY_RES = ["F"]
-
-    DC_COMP_TYPE = ["resistor", "inductor"]
-
-    GROUND = ["GND"]
-    COMP_EXCLUDE_LIST = []
-    COMP_PIN_EXCLUDE_LIST = []
 
     _PWR_NETWORK = nx.Graph()
     _COMPONENTS = {}
 
+    def __init__(self, cfg_file_path):
+        self.netlist = None
+        self.cfg = DCIRConfig(cfg_file_path)
+
+        self.edb_version = str(self.cfg.edb_version)
+        self.project_folder = os.path.dirname(os.path.abspath(cfg_file_path))
+        if self.cfg.layout_file_name.endswith(".aedb"):
+            self.edb_name = self.cfg.layout_file_name
+            self.edb_path = os.path.join(self.project_folder, self.edb_name)
+
+            netlist_name = self.edb_name.replace(".aedb", ".tel")
+            netlist_path = os.path.join(self.project_folder, netlist_name)
+
+            if not os.path.isfile(netlist_path):
+                print("******* Netlist does not exist. Converting EDB to netlist...")
+                edbapp = Edb(self.edb_path, edbversion=self.edb_version)
+                lines = EdbToNetlist(edbapp).lines
+                with open(netlist_path, "w") as f:
+                    f.writelines(lines)
+        else:
+            print("******* Netlist already exists.")
+            netlist_path = os.path.join(self.project_folder, self.cfg.layout_file_name)
+
+        self.netlist = NetList(netlist_path)
+            #self.dcir_config_list = []
+
+        self.output_folder = os.path.join(self.project_folder, "result")
+        if not os.path.isdir(self.output_folder):
+            os.mkdir(self.output_folder)
+
+        self.power_rail_list = []
+    """
     @property
     def components(self):
         return self.edb.core_components.components
-
+    """
     @property
     def power_network(self):
         if not len(self._PWR_NETWORK.nodes()):
@@ -77,18 +100,7 @@ class DCIRPowerTree:
             return self._PWR_NETWORK
         else:
             return self._PWR_NETWORK
-
-    def __init__(self, edb, edb_version):
-        self.EDB_VERSION = edb_version
-        self.edb = edb
-        self.dcir_config_list = []
-
-        if not os.path.isdir("temp"):
-            os.mkdir("temp")
-        print("Number of components {}".format(len(self.edb.core_components.components)))
-
-        self.power_rail_list = []
-
+    """
     def add_power_rail(self,
                        refdes_pin,
                        voltage=1.2,
@@ -103,7 +115,7 @@ class DCIRPowerTree:
                                node_to_ground)
         self.power_rail_list.append(power_rail)
         pass
-
+    """
     def run(self, pdf_or_aedt="pdf"):
         # edb update
         #self._replace_comp_with_resistor_from_edb()

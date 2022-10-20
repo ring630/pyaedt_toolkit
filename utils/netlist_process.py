@@ -1,8 +1,8 @@
 import re
 import pandas as pd
 
-from .dcir_power_tree import DCIRPowerTree
 from .power_rail import str2float
+
 
 class Component:
 
@@ -20,14 +20,6 @@ class Component:
 
 class NetList:
 
-    @property
-    def core_components(self):
-        return self
-
-    @property
-    def _rats_by_index(self):
-        return {i["refdes"][0]: i for i in self._rats}
-
     def __init__(self, file_path):
         self._tel_file = file_path
         self._rats = None
@@ -35,6 +27,14 @@ class NetList:
 
         self._get_rats_from_netlist()
         self._get_components_from_netlist()
+
+    @property
+    def core_components(self):
+        return self
+
+    @property
+    def _rats_by_index(self):
+        return {i["refdes"][0]: i for i in self._rats}
 
     def _get_components_from_netlist(self):
         txt_lines = open(self._tel_file).read().replace(",\n", " ")
@@ -142,14 +142,3 @@ class NetList:
                     edb_rats[refdes]["net_name"].append(net_name)
 
         self._rats = list(edb_rats.values())
-
-
-class PowerTreeTel(DCIRPowerTree):
-
-    def __init__(self, fpath, edb_version="2022.2"):
-        self.tel_path = fpath
-        self.appedb = NetList(self.tel_path)
-        DCIRPowerTree.__init__(self, self.appedb, edb_version)
-
-    def load_bom(self, bom_file):
-        pass

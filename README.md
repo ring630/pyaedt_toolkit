@@ -38,29 +38,28 @@ tel netlist. There are two classes
 # 2.1, PowerTreeTel exmaple
 
 ````python
-from utils.power_tree_schematic import PowerTreeTel
+from utils.netlist_process import PowerTreeTel
 from utils.power_rail import PowerRail
 
-
 # Define test point refdes naming convention
-PowerTreeTel.TP_PRIFIX = ["TP", "INC"] 
+PowerTreeTel.TP_PRIFIX = ["TP", "INC"]
 # Define fuse refdes naming convention. All fuses will be replaced by a resistor
-PowerTreeTel.REPLACE_BY_RES = ["F"] 
+PowerTreeTel.REPLACE_BY_RES = ["F"]
 # Define connector refdes naming convention
 PowerTreeTel.CONNECTOR_PRIFIX = ["X", "J"]
 # Define ground net name
-PowerTreeTel.GROUND = ["GND"] 
+PowerTreeTel.GROUND = ["GND"]
 # Exclude components by refdes explicitly
-PowerTreeTel.COMP_EXCLUDE_LIST = []  
+PowerTreeTel.COMP_EXCLUDE_LIST = []
 # Exclude component pin explicitly
-PowerTreeTel.COMP_PIN_EXCLUDE_LIST = ["U2A5.E1"] 
+PowerTreeTel.COMP_PIN_EXCLUDE_LIST = ["U2A5.E1"]
 
 # Whether to exlucde connector from power tree
-PowerTreeTel.EXCLUDE_CONNECTOR = True 
+PowerTreeTel.EXCLUDE_CONNECTOR = True
 
 # Example on Galileo board
 
-targetfile = r"galileo_example\galileo.tel"
+targetfile = r"example\galileo.tel"
 print(targetfile)
 PowerTreeTel(
     fpath=targetfile,
@@ -69,7 +68,7 @@ PowerTreeTel(
         PowerRail(
             prim_refdes_pin="U3A1.37", voltage=1.0,
             sec_refdes_pin_list=[],
-            sink_power_info="galileo_example/U3A1-BST_V1P0_S0.csv"),
+            sink_power_info="example/U3A1-BST_V1P0_S0.csv"),
 
         PowerRail(prim_refdes_pin="U3A1.14", voltage=3.3),
     ],
