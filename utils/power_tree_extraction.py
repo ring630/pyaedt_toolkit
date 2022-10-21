@@ -60,43 +60,41 @@ class PowerTreeExtraction:
         else:
             return self._PWR_NETWORK
 
-    def __init__(self, project_dir, cfg_file_path):
+    def __init__(self, project_dir, fname_cfg):
+        self.default_cwd = os.getcwd()
         os.chdir(project_dir)
         self.netlist = None
-        self.dcir_config = PowerTreeConfig(cfg_file_path)
+        self.dcir_cfg = PowerTreeConfig(fname_cfg)
 
-        self.project_folder = project_dir
-        self.comp_definition_fpath = os.path.join(self.project_folder, self.dcir_config.comp_definition)
+        self.fname_comp_definition = self.dcir_cfg.comp_definition
 
-        self.edb_version = str(self.dcir_config.edb_version)
-        self.edb_name = self.dcir_config.layout_file_name
-        self.edb_path = os.path.join(self.project_folder, self.edb_name)
+        self.edb_version = str(self.dcir_cfg.edb_version)
+        self.edb_name = self.dcir_cfg.layout_file_name
 
     def extract_power_tree(self, visualize="pdf"):
         # Create netlist
-        if self.dcir_config.layout_file_name.endswith(".aedb"):
-            netlist_name = self.edb_name.replace(".aedb", ".tel")
-            netlist_path = os.path.join(self.project_folder, netlist_name)
+        netlist_name = self.edb_name.replace(".aedb", ".tel")
+        if self.dcir_cfg.layout_file_name.endswith(".aedb"):
 
-            if not os.path.isfile(netlist_path):
+
+            if not os.path.isfile(netlist_name):
                 print("******* Netlist does not exist. Converting EDB to netlist...")
-                edbapp = Edb(self.edb_path, edbversion=self.edb_version)
+                edbapp = Edb(self.edb_name, edbversion=self.edb_version)
                 lines = EdbToNetlist(edbapp).lines
-                with open(netlist_path, "w") as f:
+                with open(netlist_name, "w") as f:
                     f.writelines(lines)
         else:
             print("******* Netlist already exists.")
-            netlist_path = os.path.join(self.project_folder, self.dcir_config.layout_file_name)
 
-        self.netlist = NetList(netlist_path)
-        self.netlist.import_comp_definition(self.comp_definition_fpath)
+        self.netlist = NetList(netlist_name)
+        self.netlist.import_comp_definition(self.fname_comp_definition)
         self.netlist.remove_capacitors()
-        self.netlist.remove_resistor_by_value(self.dcir_config.resistor_removal_threshold)
-        self.netlist.remove_comp_by_refdes(self.dcir_config.removal_list)
-        self.netlist.remove_nets(self.dcir_config.gnd_net_name)
+        self.netlist.remove_resistor_by_value(self.dcir_cfg.resistor_removal_threshold)
+        self.netlist.remove_comp_by_refdes(self.dcir_cfg.removal_list)
+        self.netlist.remove_nets(self.dcir_cfg.gnd_net_name)
 
         # Create result folder
-        self.output_folder = os.path.join(self.project_folder, "extraction_result")
+        self.output_folder = "extraction_result"
         if not os.path.isdir(self.output_folder):
             os.mkdir(self.output_folder)
 
@@ -104,7 +102,7 @@ class PowerTreeExtraction:
 
     def _run(self, pdf_or_aedt="pdf"):
 
-        for k, single_cfg in self.dcir_config.power_configs.items():
+        for k, single_cfg in self.dcir_cfg.power_configs.items():
             sub_graph, single_cfg = self.build_power_tree(single_cfg)
 
             pos = nx.spring_layout(sub_graph, seed=100)
@@ -113,7 +111,7 @@ class PowerTreeExtraction:
             else:
                 self.visualize_power_tree_nexxim(sub_graph, pos, single_cfg)
 
-        self.dcir_config.export_config(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".json")))
+        self.dcir_cfg.export_config(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".json")))
 
     def build_power_tree(self, single_cfg):
 
@@ -352,10 +350,4 @@ class PowerTreeExtraction:
         cir.save_project(aedt_path)
         cir.close_project()
         destop.release_desktop()
-
-    def close_aedt(self):
-        non_graphical = os.getenv("PYAEDT_NON_GRAPHICAL", "False").lower() in ("true", "1", "t")
-        new_thread = False
-        destop = Desktop(self.edb_version, non_graphical, new_thread)
-        destop.release_desktop()
-
+        os.chdir(self.default_cwd)

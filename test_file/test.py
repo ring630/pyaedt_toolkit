@@ -27,7 +27,7 @@ def test_dcir_config():
 
 
 def test_dcir_power_tree_pdf():
-    app = PowerTreeExtraction(fpath_dcir_init_config)
+    app = PowerTreeExtraction(test_folder, "dcir_config.json")
     app.extract_power_tree()
 
 def test_dcir_power_tree_aedt():
@@ -37,5 +37,7 @@ def test_dcir_power_tree_aedt():
 """DCIR configuration"""
 
 def test_dcir_analysis():
-    app = DCIRAnalysis(fpath_dcir_full_config)
+    from pyaedt import Desktop
+    #Desktop()
+    app = DCIRAnalysis(test_folder, r"extraction_result\Galileo.json")
     app.config_edb()
