@@ -1,10 +1,3 @@
-import csv
-
-from pyaedt import Edb
-from bak.get_galileo_example_board import get_galileo_exmaple_board
-
-targetfile = get_galileo_exmaple_board()
-
 class EdbToNetlist:
 
     def __init__(self, edbapp):
@@ -13,7 +6,7 @@ class EdbToNetlist:
         nets = {}
 
         for refdes, obj in edbapp.core_components.components.items():
-            partname = obj.partname
+            partname = obj.part_name
 
             if not partname in package:
                 if obj.type in ["Resistor", "Capacitor", "Inductor"]:
@@ -58,28 +51,3 @@ class EdbToNetlist:
         self.lines.extend(["$NETS\n"])
         self.lines.extend([i + "\n" for i in list(nets.values())])
         self.lines.extend(["$A_PROPERTY\n"])
-
-"""        
-data = []
-for refdes, comp_obj in edbapp.core_components.components.items():
-    partname = comp_obj.partname
-
-    if partname == "NONE":
-        continue
-
-    value = ""
-    if comp_obj.type == "Resistor":
-        value = comp_obj.res_value
-    elif comp_obj.type == "Capacitor":
-        value = comp_obj.cap_value
-    elif comp_obj.type == "Inductor":
-        value = comp_obj.ind_value
-
-    data.append([partname, refdes, value])
-
-return data
-with open("../example/bom_galileo.csv", "w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerow(["Prod name", "RefDes", "Value"])
-    writer.writerows(data)
-"""

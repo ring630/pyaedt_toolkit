@@ -1,9 +1,13 @@
 {
-    "edb_version": 2022.2,
+    "edb_version": "2022.2",
     "layout_file_name": "Galileo.aedb",
+    "comp_definition": "comp_definition.json",
     "gnd_net_name": "GND",
-    "removal_list": [],
-    "comp_definition": {},
+    "resistor_removal_threshold": 10,
+    "removal_list": [
+        "J1B1",
+        "J2B1"
+    ],
     "power_configs": {
         "0":{
             "v_comp": {

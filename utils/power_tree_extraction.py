@@ -1,59 +1,19 @@
-import logging
 import os
-import itertools as it
 import shutil
-import re
-import tempfile
+import itertools as it
 import matplotlib.pyplot as plt
 import networkx as nx
 from pyaedt import Desktop, Circuit, Edb
-from .power_rail import str2float, Sink
 
-from utils.dcir_config import DCIRConfig, IVComp
+from utils.configuration import PowerTreeConfig, IVComp
 from utils.edb_to_tel import EdbToNetlist
 from utils.netlist_process import NetList
+from utils.edb_process import EdbLayout
 
 
-class DCIRPowerTree:
+class PowerTreeExtraction:
     _PWR_NETWORK = nx.Graph()
     _COMPONENTS = {}
-
-    def __init__(self, cfg_file_path):
-        self.netlist = None
-        self.dcir_config = DCIRConfig(cfg_file_path)
-
-        self.edb_version = str(self.dcir_config.edb_version)
-        self.project_folder = os.path.dirname(os.path.abspath(cfg_file_path))
-        if self.dcir_config.layout_file_name.endswith(".aedb"):
-            self.edb_name = self.dcir_config.layout_file_name
-            self.edb_path = os.path.join(self.project_folder, self.edb_name)
-
-            netlist_name = self.edb_name.replace(".aedb", ".tel")
-            netlist_path = os.path.join(self.project_folder, netlist_name)
-
-            if not os.path.isfile(netlist_path):
-                print("******* Netlist does not exist. Converting EDB to netlist...")
-                edbapp = Edb(self.edb_path, edbversion=self.edb_version)
-                lines = EdbToNetlist(edbapp).lines
-                with open(netlist_path, "w") as f:
-                    f.writelines(lines)
-        else:
-            print("******* Netlist already exists.")
-            netlist_path = os.path.join(self.project_folder, self.dcir_config.layout_file_name)
-
-        self.netlist = NetList(netlist_path)
-        self.netlist.remove_unmounted_components()
-        # self.dcir_config_list = []
-
-        self.output_folder = os.path.join(self.project_folder, "result")
-        if not os.path.isdir(self.output_folder):
-            os.mkdir(self.output_folder)
-
-    """
-    @property
-    def components(self):
-        return self.edb.core_components.components
-    """
 
     @property
     def power_network(self):
@@ -100,28 +60,80 @@ class DCIRPowerTree:
         else:
             return self._PWR_NETWORK
 
-    def run(self, pdf_or_aedt="pdf"):
+    def __init__(self, project_dir, cfg_file_path):
+        os.chdir(project_dir)
+        self.netlist = None
+        self.dcir_config = PowerTreeConfig(cfg_file_path)
 
-        for k, cfg in self.dcir_config.power_configs.items():
-            sub_graph, cfg = self.build_power_tree(cfg)
+        self.project_folder = project_dir
+        self.comp_definition_fpath = os.path.join(self.project_folder, self.dcir_config.comp_definition)
+
+        self.edb_version = str(self.dcir_config.edb_version)
+        self.edb_name = self.dcir_config.layout_file_name
+        self.edb_path = os.path.join(self.project_folder, self.edb_name)
+
+    def extract_power_tree(self, visualize="pdf"):
+        # Create netlist
+        if self.dcir_config.layout_file_name.endswith(".aedb"):
+            netlist_name = self.edb_name.replace(".aedb", ".tel")
+            netlist_path = os.path.join(self.project_folder, netlist_name)
+
+            if not os.path.isfile(netlist_path):
+                print("******* Netlist does not exist. Converting EDB to netlist...")
+                edbapp = Edb(self.edb_path, edbversion=self.edb_version)
+                lines = EdbToNetlist(edbapp).lines
+                with open(netlist_path, "w") as f:
+                    f.writelines(lines)
+        else:
+            print("******* Netlist already exists.")
+            netlist_path = os.path.join(self.project_folder, self.dcir_config.layout_file_name)
+
+        self.netlist = NetList(netlist_path)
+        self.netlist.import_comp_definition(self.comp_definition_fpath)
+        self.netlist.remove_capacitors()
+        self.netlist.remove_resistor_by_value(self.dcir_config.resistor_removal_threshold)
+        self.netlist.remove_comp_by_refdes(self.dcir_config.removal_list)
+        self.netlist.remove_nets(self.dcir_config.gnd_net_name)
+
+        # Create result folder
+        self.output_folder = os.path.join(self.project_folder, "extraction_result")
+        if not os.path.isdir(self.output_folder):
+            os.mkdir(self.output_folder)
+
+        self._run(visualize)
+
+    def _run(self, pdf_or_aedt="pdf"):
+
+        for k, single_cfg in self.dcir_config.power_configs.items():
+            sub_graph, single_cfg = self.build_power_tree(single_cfg)
 
             pos = nx.spring_layout(sub_graph, seed=100)
             if pdf_or_aedt == "pdf":
-                self.visualize_power_tree_pdf(sub_graph, pos, cfg)
+                self.visualize_power_tree_pdf(sub_graph, pos, single_cfg)
             else:
-                self.visualize_power_tree_nexxim(sub_graph, pos, cfg)
-            # self.dcir_config_list.append(power_rail)
+                self.visualize_power_tree_nexxim(sub_graph, pos, single_cfg)
 
-    def build_power_tree(self, cfg):
+        self.dcir_config.export_config(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".json")))
+
+    def build_power_tree(self, single_cfg):
 
         # Find primary source node name
-        refdes = cfg.main_v_comp
-        pin = str(cfg.main_v_comp_pin)
+        refdes = single_cfg.main_v_comp
+        pin = str(single_cfg.main_v_comp_pin)
         for node_name, attr in self.power_network.nodes.data():
             if refdes == attr["refdes"] and pin in attr["pin_list"]:
-                cfg._node_name = node_name
+                single_cfg._node_name = node_name
+                k = list(single_cfg.v_comp.keys())[0]
+                val = single_cfg.v_comp.pop(k)
+                val.net_name = attr["net_name"]
+                val.part_name = self.netlist.components[refdes].part_name
+                val.pin_list = "-".join(attr["pin_list"])
+                single_cfg.v_comp[node_name] = val
+                break
+
+
         # Find power rail network
-        prim_node = cfg._node_name
+        prim_node = single_cfg._node_name
         sub_graph = None
         for i in nx.connected_components(self.power_network):
             if prim_node in i:
@@ -132,11 +144,7 @@ class DCIRPowerTree:
         for node_name, attr in sub_graph.nodes.data():
             if node_name == prim_node:
                 sub_graph.nodes[node_name]["dcir_type"] = "source"
-                sub_graph.nodes[node_name]["voltage"] = cfg.voltage
-
-            # elif node_name in power_rail.sec_refdes_pin_list:
-            # sub_graph.nodes[node_name]["dcir_type"] = "source"
-            # sub_graph.nodes[node_name]["voltage"] = power_rail.voltage
+                sub_graph.nodes[node_name]["voltage"] = single_cfg.voltage
 
             elif sub_graph.nodes[node_name]["comp_type"] in ["resistor", "inductor"]:
                 sub_graph.nodes[node_name]["dcir_type"] = "dc_comp"
@@ -145,13 +153,13 @@ class DCIRPowerTree:
                 sub_graph.nodes[node_name]["current"] = 0.001
                 refdes = attr["refdes"]
                 i_comp = IVComp(refdes,
-                                part_name=self.netlist.components[refdes].partname,
+                                part_name=self.netlist.components[refdes].part_name,
                                 net_name=attr["net_name"],
-                                pin_list=attr["pin_list"],
+                                pin_list="-".join(attr["pin_list"]),
                                 value=0.001
                                 )
                 i_comp._node_name = node_name
-                cfg.i_comp[node_name] = i_comp
+                single_cfg.i_comp[node_name] = i_comp
 
         # connect RLC terminals again
         edge_list = {}
@@ -176,17 +184,10 @@ class DCIRPowerTree:
 
             if attr["comp_type"] in ["resistor", "inductor"]:
                 node_list[net_name]["dc_comp"].append(node_name)
-            elif node_name == cfg._node_name:
+            elif node_name == single_cfg._node_name:
                 node_list[net_name]["dc_comp"].append(node_name)
             else:
                 node_list[net_name]["sink"].append(node_name)
-
-        # Adjust secondary source if applicable
-        # Connect prim and sec sources
-        # for node_name in power_rail.sec_node_name_list:
-        #    sub_graph.nodes[node_name]["dcir_type"] = "source"
-        #    sub_graph.nodes[node_name]["voltage"] = power_rail.voltage
-        #    sub_graph.add_edge(power_rail._node_name, node_name, net_name="multi_phase")
 
         for net_name, attr in node_list.items():
             if net_name not in sub_graph.nodes():
@@ -196,6 +197,7 @@ class DCIRPowerTree:
             for dc_comp in attr["dc_comp"]:
                 sub_graph.add_edge(net_name, dc_comp, net_name=net_name)
 
+            last_node = None
             for idx, sink in enumerate(attr["sink"]):
                 if idx == 0:
                     sub_graph.add_edge(net_name, sink, net_name=net_name)
@@ -223,7 +225,7 @@ class DCIRPowerTree:
             sub_graph.remove_node(n1)
             sub_graph.remove_node(n2)
 
-        return sub_graph, cfg
+        return sub_graph, single_cfg
 
     def visualize_power_tree_pdf(self, graph, pos, cfg):
         node_color = []
@@ -257,8 +259,8 @@ class DCIRPowerTree:
             attr = graph.nodes.data()[n]
             refdes = attr["refdes"]
             if attr["dcir_type"] == "sink":
-                part_name = self.netlist.core_components.components[refdes].partname
-                current = cfg.sinks[n].current
+                part_name = self.netlist.core_components.components[refdes].part_name
+                current = cfg.i_comp[n].value
                 txt = "{}\n{}\nCurrent={}\n".format(refdes, part_name, current)
                 ax.text(x, y, txt, color="g", fontsize=10, horizontalalignment="left")
 
@@ -275,18 +277,18 @@ class DCIRPowerTree:
                 ax.text(x, y, txt, fontsize=6, horizontalalignment="left",
                         bbox=dict(facecolor='none', edgecolor='black', pad=2.0))
 
-        png_fpath = os.path.join("temp", cfg.figure_save_name)
+        png_fpath = os.path.join(self.output_folder, cfg._node_name + ".png")
         plt.tight_layout()
         plt.savefig(png_fpath)
         plt.show()
-        print("* Save power tree png to", os.path.join("temp", cfg.figure_save_name))
 
-    def visualize_power_tree_nexxim(self, G, pos, power_rail, ratio=0.15):
+    def visualize_power_tree_nexxim(self, G, pos, cfg, ratio=0.15):
 
-        non_graphical = os.getenv("PYAEDT_NON_GRAPHICAL", "False").lower() in ("true", "1", "t")
-        new_thread = False
-        Desktop(self.EDB_VERSION, non_graphical, new_thread)
-        cir = Circuit(designname=power_rail._node_name)
+        #non_graphical = os.getenv("PYAEDT_NON_GRAPHICAL", "False").lower() in ("true", "1", "t")
+        non_graphical = True
+        new_thread = True
+        destop= Desktop(self.edb_version, non_graphical, new_thread)
+        cir = Circuit(designname=cfg._node_name)
 
         for node_name, p in pos.items():
             x, y = p * ratio
@@ -313,12 +315,13 @@ class DCIRPowerTree:
                     net_name = node_name.split("-")[1:]
 
                 if dcir_type == "source":
-                    voltage = power_rail.voltage
+                    voltage = cfg.voltage
                     source = cir.modeler.schematic.create_voltage_dc(comp_name, voltage, [x, y])
                     cir.modeler.components.create_page_port(net_name, source.pins[1].location)
                     cir.modeler.components.create_page_port("0", source.pins[0].location)
                 else:
-                    current = power_rail.sinks[node_name].current
+
+                    current = cfg.i_comp[node_name].value
                     sink = cir.modeler.schematic.create_current_dc(comp_name, current, [x, y])
                     cir.modeler.components.create_page_port(net_name, sink.pins[1].location)
                     cir.modeler.components.create_page_port("0", sink.pins[0].location)
@@ -335,8 +338,24 @@ class DCIRPowerTree:
                 color = 0
             cir.modeler.components.create_line([p1, p2], color)
 
+        aedt_name = self.edb_name.replace(".aedb", ".aedt")
+        aedt_path = os.path.join(self.output_folder, aedt_name)
+        edb_path = os.path.join(self.output_folder, self.edb_name)
+        aedt_result_path = aedt_path.replace("aedt", "aedtresults")
+        if os.path.isfile(aedt_path):
+            os.remove(aedt_path)
+        if os.path.isdir(edb_path):
+            shutil.rmtree(edb_path)
+        if os.path.isdir(aedt_result_path):
+            shutil.rmtree(aedt_result_path)
+
+        cir.save_project(aedt_path)
+        cir.close_project()
+        destop.release_desktop()
+
     def close_aedt(self):
         non_graphical = os.getenv("PYAEDT_NON_GRAPHICAL", "False").lower() in ("true", "1", "t")
         new_thread = False
-        destop = Desktop(self.EDB_VERSION, non_graphical, new_thread)
+        destop = Desktop(self.edb_version, non_graphical, new_thread)
         destop.release_desktop()
+

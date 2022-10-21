@@ -1,7 +1,27 @@
+import json
 import re
-import pandas as pd
 
-from .power_rail import str2float
+
+def str2float(des_type, val):
+    if isinstance(val, float):
+        return val
+    if isinstance(val, int):
+        return val
+
+    removal_list = ["ohm", "Ohm", "ohms", "Ohms"]
+
+    res_value_dict = {"k": "e3", "K": "e3",
+                      "MEG": "e6", "M": "e6", "meg": "e6"
+                      }
+
+    val = val.replace(",", ".")
+    if des_type == "resistor":
+        for i in removal_list:
+            val = val.replace(i, "")
+
+        for i, j in res_value_dict.items():
+            val = val.replace(i, j)
+    return float(val)
 
 
 class Component:
@@ -14,7 +34,7 @@ class Component:
         self.refdes = refdes
         self.type = cmp_type
         self.value = value
-        self.partname = part_name
+        self.part_name = part_name
         self.is_enabled = True
 
 
@@ -36,6 +56,9 @@ class NetList:
     def _rats_by_index(self):
         return {i["refdes"][0]: i for i in self._rats}
 
+    def get_rats(self):
+        return self._rats
+
     def _get_components_from_netlist(self):
         txt_lines = open(self._tel_file).read().replace(",\n", " ")
 
@@ -56,16 +79,10 @@ class NetList:
                 elif refdes.startswith("R"):
                     val_float = str2float("resistor", val_str)
                     self.components[refdes] = Component(refdes, "resistor", pn, val_float)
-                    """elif refdes.startswith("F"):
-                    self.component[refdes] = Component(refdes, "resistor", pn, "0.001")"""
                 elif refdes.startswith("L"):
                     self.components[refdes] = Component(refdes, "inductor", pn)
                 elif refdes.startswith("C"):
                     self.components[refdes] = Component(refdes, "capacitor", pn)
-                    """elif refdes.startswith("INC"):
-                    self.component[refdes] = Component(refdes, "test_point", pn)
-                elif refdes.startswith("X"):
-                    self.component[refdes] = Component(refdes, "connector", pn)"""
                 else:
                     self.components[refdes] = Component(refdes, "other", pn)
 
@@ -74,35 +91,77 @@ class NetList:
 
     def import_comp_definition(self, file_path):
         remove_list = []
-        df = pd.read_csv(file_path, index_col=0)
-        for part_name, val in df.iterrows():
+        with open(file_path, "r") as f:
+            data = json.loads(f.read())
+        data = data["Definitions"]
+        for part_name, val in data.items():
             for refdes, obj in self.components.items():
-                if obj.partname == part_name:
-                    if val.Type == "Testpoint":
+                if obj.part_name == part_name:
+                    if val["Component_type"].capitalize() == "Testpoint":
                         remove_list.append(refdes)
+                    elif val["Model_type"] == "RLC":
+                        print(val)
+                        comp_tpye = val["Component_type"]
+                        comp_tpye = comp_tpye.capitalize() if len(comp_tpye) > 2 else comp_tpye.upper()
+                        obj.type = comp_tpye
+                        if obj.type == "Resistor":
+                            obj.value = val["Res"]
+                        elif obj.type == "Inductor":
+                            obj.value = val["Ind"]
+                        elif obj.type == "Capacitor":
+                            obj.value = val["Cap"]
+                        else:
+                            pass
                     else:
-                        print("update {}, {} -> {}, {} -> {}".format(refdes, obj.type, val.Type, obj.value, val.Value))
-                        obj.type = val.Type
-                        obj.value = val.Value
+                        pass
         for refdes in remove_list:
             self.components.pop(refdes)
             self._rats.remove(self._rats_by_index[refdes])
             print("Test point ", refdes, " is removed")
 
-    def remove_unmounted_components(self, file_path):
-        remove_list = []
-        df = pd.read_csv(file_path, index_col=0)
-        for refdes_remove, val in df.iterrows():
-            print(refdes_remove, "is removed")
+    def remove_capacitors(self):
+        removal_list = []
+        for refdes, comp in self.components.items():
+            if comp.type.capitalize() == "Capacitor":
+                removal_list.append(refdes)
+        self.remove_comp_by_refdes(removal_list)
+
+    def remove_resistor_by_value(self, value):
+        removal_list = []
+        for refdes, comp in self.components.items():
+            if comp.type.capitalize() == "Resistor":
+                if str2float("resistor", comp.value) > value:
+                    removal_list.append(refdes)
+        self.remove_comp_by_refdes(removal_list)
+
+    def remove_comp_by_refdes(self, refdes_list):
+        removal_list = []
+        for refdes_remove in refdes_list:
             self.components.pop(refdes_remove)
             for idx, i in enumerate(self._rats):
                 if i["refdes"][0] == refdes_remove:
-                    remove_list.append(i)
-        for i in remove_list:
+                    removal_list.append(i)
+        for i in removal_list:
             self._rats.remove(i)
 
-    def get_rats(self):
-        return self._rats
+    def remove_nets(self, net):
+        if not isinstance(net, list):
+            net = [net]
+        rat_remove_list = []
+        for n in net:
+            for rat in self._rats:
+                temp_list = []
+                for idx, n1 in enumerate(rat["net_name"]):
+                    if n1 == n:
+                        temp_list.append(idx)
+                rat["refdes"] = [i for idx, i in enumerate(rat["refdes"]) if idx not in temp_list]
+                rat["pin_name"] = [i for idx, i in enumerate(rat["pin_name"]) if idx not in temp_list]
+                rat["net_name"] = [i for idx, i in enumerate(rat["net_name"]) if idx not in temp_list]
+                if not len(rat["refdes"]):
+                    rat_remove_list.append(rat)
+        for rat in rat_remove_list:
+            self._rats.remove(rat)
+        return
 
     def _get_rats_from_netlist(self):
         ############################

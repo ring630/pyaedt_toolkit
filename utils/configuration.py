@@ -12,7 +12,6 @@ class IVComp:
 
         self._node_name = None
 
-
     def to_dict(self):
         return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
 
@@ -31,11 +30,14 @@ class SinglePowerConfig:
         self.v_comp = {}
         self.i_comp = {}
 
+        self._node_name = None
+
     def to_dict(self):
         def find_recur(x, data):
             _data = data
-            for k, val in x.__dict__.items():
-                if isinstance(x, dict):
+            for k, val in x.items():
+                if isinstance(val, dict):
+                    _data[k] = {}
                     find_recur(val, _data[k])
                 elif isinstance(val, IVComp):
                     _data[k] = val.to_dict()
@@ -43,7 +45,10 @@ class SinglePowerConfig:
                     _data[k] = val
             return _data
         data = {}
-        return find_recur(self, data)
+        data = find_recur(self.__dict__, data)
+        for k, val in data["i_comp"].items():
+            val.pop("power_pin")
+        return data
 
     def import_dict(self, fpath):
         def find_recur(data):
@@ -66,13 +71,14 @@ class SinglePowerConfig:
         self._node_name = list(self.v_comp.values())[0]._node_name
 
 
-class DCIRConfig:
+class PowerTreeConfig:
     def __init__(self, cfg_file_path=""):
         self.edb_version = ""
         self.layout_file_name = ""
         self.gnd_net_name = ""
+        self.resistor_removal_threshold = 0
         self.removal_list = []
-        self.comp_definition = {}
+        self.comp_definition = {} #
         self.power_configs = {}
 
         self.import_config(cfg_file_path)
@@ -95,10 +101,10 @@ class DCIRConfig:
 
     def export_config(self, file_path):
         cfg = {key: value for key, value in self.__dict__.items()}
-        temp = []
-        for val in cfg["power_config"]:
-            temp.append(val.export())
-        cfg["power_config"] = temp
+        temp = {}
+        for k, val in cfg["power_configs"].items():
+            temp[val._node_name] = val.to_dict()
+        cfg["power_configs"] = temp
 
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False, indent=4)
