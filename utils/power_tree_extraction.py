@@ -129,7 +129,6 @@ class PowerTreeExtraction:
                 single_cfg.v_comp[node_name] = val
                 break
 
-
         # Find power rail network
         prim_node = single_cfg._node_name
         sub_graph = None

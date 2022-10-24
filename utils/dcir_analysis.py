@@ -71,3 +71,4 @@ class DCIRAnalysis:
         hfss3dl.save_project()
         hfss3dl.close_project()
         desktop.release_desktop()
+        os.chdir(self.default_cwd)
