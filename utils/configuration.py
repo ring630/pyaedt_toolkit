@@ -97,8 +97,10 @@ class PowerTreeConfig:
             }
         }
         self.all_power_nets = []
-
-        self.import_config_json(cfg_file_path)
+        if cfg_file_path.endswith(".json"):
+            self.import_config_json(cfg_file_path)
+        else:
+            self.import_config_excel(cfg_file_path)
 
     def import_config_json(self, file_path):
         def find_recur(data):
@@ -194,29 +196,31 @@ class PowerTreeConfig:
             basic.to_excel(writer, sheet_name='Basic_info', header=False)
 
             removal_ser = pd.Series(removal_list)
-            removal_ser.to_excel(writer, sheet_name="Removal_list", header=False)
+            removal_ser.to_excel(writer, sheet_name="removal_list", header=False)
 
             for pname, props in power_config.items():
-                temp = {}
-                temp.update(props["v_comp"])
-                temp.update(props["i_comp"])
-                temp2 = {}
-                temp2.update(temp)
+
+                v_comp = props["v_comp"]
+                i_comp = props["i_comp"]
+
                 power_df = None
-                for cname, props in temp2.items():
-                    #data = {"name": cname}
-                    temp.update(props)
-                    if not power_df:
-                        power_df = pd.DataFrame(temp, index=[cname])
+                for comp_name, comp_props in v_comp.items():
+                    if not isinstance(power_df, pd.DataFrame):
+                        power_df = pd.DataFrame(comp_props, index=[comp_name])
                     else:
-                        power_df = power_df.append(pd.DataFrame(temp, index=[cname]))
+                        power_df = power_df.append(pd.DataFrame(comp_props, index=[comp_name]))
+
+                for comp_name, comp_props in i_comp.items():
+                    if not isinstance(power_df, pd.DataFrame):
+                        power_df = pd.DataFrame(comp_props, index=[comp_name])
+                    else:
+                        power_df = power_df.append(pd.DataFrame(comp_props, index=[comp_name]))
                 power_df.to_excel(writer, sheet_name=pname)
 
             custom_comps_df = None
             i = 1
             for refdes, props in custom_comps.items():
-                temp = {"index": str(i),
-                        "refdes": refdes}
+                temp = {"refdes": refdes}
                 for pname, cp in props.items():
                     temp["power_name"] = pname
                     temp.update(cp)
@@ -224,6 +228,33 @@ class PowerTreeConfig:
                     if not custom_comps_df:
                         custom_comps_df = pd.DataFrame(temp, index=[str(i)])
                     else:
-                        custom_comps_df.append(temp)
+                        custom_comps_df.append(pd.DataFrame(temp, index=[str(i)]))
                     i = i + 1
-            custom_comps_df.to_excel(writer, sheet_name="Custom_comps")
+            custom_comps_df.to_excel(writer, sheet_name="custom_comps")
+
+    def import_config_excel(self, file_path):
+        xls = pd.ExcelFile(file_path)
+        for sheet_name in xls.sheet_names:
+            df = pd.read_excel(xls, sheet_name=sheet_name, header=None)
+            if sheet_name.lower() == "basic_info":
+                for i in df.values:
+                    self.__dict__[i[0]] = i[1]
+            elif sheet_name.lower() == "removal_list":
+                for i in df.values:
+                    self.__dict__[sheet_name.lower()].append(i[1])
+            elif sheet_name.lower() == "custom_comps":
+                df = pd.read_excel(xls, sheet_name=sheet_name)
+                for _, i in df.iterrows():
+                    self.__dict__[sheet_name.lower()][i.refdes] = {i.power_name: {
+                        "pin_list": i.pin_list,
+                        "value": i.value}}
+            elif sheet_name.lower() == "vrm":
+                df = pd.read_excel(xls, sheet_name=sheet_name, index_col=0)
+
+                for idx, i in df.iterrows():
+                    data = {"v_comp": {}}
+                    data["v_comp"][idx] = dict(i)
+                    sp = SinglePowerConfig()
+                    sp.import_dict(data)
+                    self.power_configs[idx] = sp
+

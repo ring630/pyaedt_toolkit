@@ -116,7 +116,7 @@ class PowerTreeExtraction:
             self.dcir_cfg.import_power_lib(self.fname_power_lib)
         self.dcir_cfg.custom_comp_overwrite()
         self.dcir_cfg.export_config_json(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".json")))
-        #self.dcir_cfg.export_config_excel(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".xlsx")))
+        self.dcir_cfg.export_config_excel(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".xlsx")))
 
         for k, g in graphs.items():
             single_cfg = self.dcir_cfg.power_configs[k]

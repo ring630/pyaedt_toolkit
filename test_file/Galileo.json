@@ -20,7 +20,8 @@
       }
     },
     "1": {
-      "v_comp": {
+      "v_comp":
+      {
         "P1V0": {
           "refdes": "U3A1",
           "power_pin": 37,
