@@ -1,40 +1,24 @@
 import json
 import re
+from . import str2float
 
 
-def str2float(des_type, val):
-    if isinstance(val, float):
-        return val
-    if isinstance(val, int):
-        return val
-
-    removal_list = ["ohm", "Ohm", "ohms", "Ohms"]
-
-    res_value_dict = {"k": "e3", "K": "e3",
-                      "MEG": "e6", "M": "e6", "meg": "e6"
-                      }
-
-    val = val.replace(",", ".")
-    if des_type == "resistor":
-        for i in removal_list:
-            val = val.replace(i, "")
-
-        for i, j in res_value_dict.items():
-            val = val.replace(i, j)
-    return float(val)
+class CompDefinition:
+    def __init__(self, cmp_type, part_name, value=""):
+        self.type = cmp_type
+        self.value = value
+        self.part_name = part_name
 
 
-class Component:
+class Component(CompDefinition):
 
     @property
     def res_value(self):
         return self.value
 
     def __init__(self, refdes, cmp_type, part_name, value=""):
+        CompDefinition.__init__(self, cmp_type, part_name, value)
         self.refdes = refdes
-        self.type = cmp_type
-        self.value = value
-        self.part_name = part_name
         self.is_enabled = True
 
 
@@ -44,6 +28,7 @@ class NetList:
         self._tel_file = file_path
         self._rats = None
         self.components = {}
+        self.comp_definitions = {}
 
         self._get_rats_from_netlist()
         self._get_components_from_netlist()
@@ -201,3 +186,9 @@ class NetList:
                     edb_rats[refdes]["net_name"].append(net_name)
 
         self._rats = list(edb_rats.values())
+
+    def _get_component_definitions(self):
+        for refdes, props in self.components.items():
+            part_name = props.part_name
+            if part_name not in self.comp_definitions:
+                self.comp_definitions[part_name] = CompDefinition(props.type, props.part_name, props.value)

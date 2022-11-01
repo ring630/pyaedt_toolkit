@@ -64,14 +64,17 @@ class PowerTreeExtraction:
         self.default_cwd = os.getcwd()
         os.chdir(project_dir)
         self.netlist = None
+
         self.dcir_cfg = PowerTreeConfig(fname_cfg)
 
         self.fname_comp_definition = self.dcir_cfg.comp_definition
+        self.fname_power_lib = self.dcir_cfg.power_lib_file
 
         self.edb_version = str(self.dcir_cfg.edb_version)
         self.edb_name = self.dcir_cfg.layout_file_name
 
-    def extract_power_tree(self, visualize="pdf"):
+
+    def extract_power_tree(self, aedt_nexxim=False, pdf_figsize=(12, 8)):
         # Create netlist
         netlist_name = self.edb_name.replace(".aedb", ".tel")
         if self.dcir_cfg.layout_file_name.endswith(".aedb"):
@@ -87,7 +90,8 @@ class PowerTreeExtraction:
             print("******* Netlist already exists.")
 
         self.netlist = NetList(netlist_name)
-        self.netlist.import_comp_definition(self.fname_comp_definition)
+        if self.fname_comp_definition:
+            self.netlist.import_comp_definition(self.fname_comp_definition)
         self.netlist.remove_capacitors()
         self.netlist.remove_resistor_by_value(self.dcir_cfg.resistor_removal_threshold)
         self.netlist.remove_comp_by_refdes(self.dcir_cfg.removal_list)
@@ -98,20 +102,51 @@ class PowerTreeExtraction:
         if not os.path.isdir(self.output_folder):
             os.mkdir(self.output_folder)
 
-        self._run(visualize)
+        self._run(aedt_nexxim, pdf_figsize)
 
-    def _run(self, pdf_or_aedt="pdf"):
+    def _run(self, aedt_nexxim=False, pdf_figsize=(12, 8), ratio=0.3):
 
+        graphs = {}
         for k, single_cfg in self.dcir_cfg.power_configs.items():
             sub_graph, single_cfg = self.build_power_tree(single_cfg)
-
             pos = nx.spring_layout(sub_graph, seed=100)
-            if pdf_or_aedt == "pdf":
-                self.visualize_power_tree_pdf(sub_graph, pos, single_cfg)
-            else:
-                self.visualize_power_tree_nexxim(sub_graph, pos, single_cfg)
+            graphs[k] = [sub_graph, pos]
 
-        self.dcir_cfg.export_config(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".json")))
+        if self.fname_power_lib:
+            self.dcir_cfg.import_power_lib(self.fname_power_lib)
+        self.dcir_cfg.custom_comp_overwrite()
+        self.dcir_cfg.export_config_json(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".json")))
+        #self.dcir_cfg.export_config_excel(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".xlsx")))
+
+        for k, g in graphs.items():
+            single_cfg = self.dcir_cfg.power_configs[k]
+            sub_graph, pos = g
+            self.visualize_power_tree_pdf(sub_graph, pos, single_cfg, pdf_figsize)
+
+        if aedt_nexxim:
+            non_graphical = False
+            new_thread = True
+            desktop = Desktop(self.edb_version, non_graphical, new_thread)
+            for k, g in graphs.items():
+                single_cfg = self.dcir_cfg.power_configs[k]
+                sub_graph, pos = g
+                self.visualize_power_tree_nexxim(sub_graph, pos, single_cfg, ratio=ratio*pdf_figsize[0]/12)
+
+            aedt_name = self.edb_name.replace(".aedb", ".aedt")
+            aedt_path = os.path.join(self.output_folder, aedt_name)
+            edb_path = os.path.join(self.output_folder, self.edb_name)
+            aedt_result_path = aedt_path.replace("aedt", "aedtresults")
+            if os.path.isfile(aedt_path):
+                os.remove(aedt_path)
+            if os.path.isdir(edb_path):
+                shutil.rmtree(edb_path)
+            if os.path.isdir(aedt_result_path):
+                shutil.rmtree(aedt_result_path)
+
+            desktop.save_project(project_path=os.path.join(os.getcwd(), aedt_path))
+            desktop.close_desktop()
+            os.chdir(self.default_cwd)
+
 
     def build_power_tree(self, single_cfg):
 
@@ -135,6 +170,10 @@ class PowerTreeExtraction:
         for i in nx.connected_components(self.power_network):
             if prim_node in i:
                 sub_graph = self.power_network.subgraph(i)
+                _nets = list(set(nx.get_edge_attributes(sub_graph, "net_name").values()))
+                _nets = [i for i in _nets if i not in ["resistor", "inductor"]]
+                _nets = [i for i in _nets if i not in self.dcir_cfg.all_power_nets]
+                self.dcir_cfg.all_power_nets.extend(_nets)
                 break
         sub_graph = nx.create_empty_copy(sub_graph)
 
@@ -212,7 +251,7 @@ class PowerTreeExtraction:
         for i in node_removal_list:
             n1, n2, new_node_name = i
             sub_graph.add_node(new_node_name, dcir_type="dc_comp", refdes=sub_graph.nodes[n1]["refdes"],
-                               net_name=[sub_graph.nodes[n1]["net_name"], sub_graph.nodes[n1]["net_name"]])
+                               net_name=[sub_graph.nodes[n1]["net_name"], sub_graph.nodes[n2]["net_name"]])
             for n in sub_graph.adj[n1]:
                 if not n == n2:
                     sub_graph.add_edge(new_node_name, n)
@@ -224,7 +263,7 @@ class PowerTreeExtraction:
 
         return sub_graph, single_cfg
 
-    def visualize_power_tree_pdf(self, graph, pos, cfg):
+    def visualize_power_tree_pdf(self, graph, pos, cfg, figsize, plot=False):
         node_color = []
         node_size = []
         for n, _ in graph.nodes.data():
@@ -241,7 +280,7 @@ class PowerTreeExtraction:
                 node_size.append(20)
                 node_color.append("y")
 
-        fig, ax = plt.subplots(figsize=(12, 8))
+        fig, ax = plt.subplots(figsize=figsize)
         nx.draw_networkx_nodes(graph, pos=pos, ax=ax, node_shape=".",
                                node_color=node_color,
                                node_size=node_size)
@@ -270,22 +309,23 @@ class PowerTreeExtraction:
                 ax.text(x, y, txt, fontsize=6, horizontalalignment="center")
 
             else:
-                txt = "{}".format(refdes)
+                comp = self.netlist.components[refdes]
+                txt = "{}-{}".format(refdes, comp.value)
                 ax.text(x, y, txt, fontsize=6, horizontalalignment="left",
                         bbox=dict(facecolor='none', edgecolor='black', pad=2.0))
 
         png_fpath = os.path.join(self.output_folder, cfg._node_name + ".png")
         plt.tight_layout()
         plt.savefig(png_fpath)
-        plt.show()
+        if plot:
+            plt.show()
+        plt.close()
 
     def visualize_power_tree_nexxim(self, G, pos, cfg, ratio=0.15):
 
         #non_graphical = os.getenv("PYAEDT_NON_GRAPHICAL", "False").lower() in ("true", "1", "t")
-        non_graphical = True
-        new_thread = True
-        destop= Desktop(self.edb_version, non_graphical, new_thread)
-        cir = Circuit(designname=cfg._node_name)
+
+        cir = Circuit(designname=cfg._node_name.replace("-", "_"))
 
         for node_name, p in pos.items():
             x, y = p * ratio
@@ -299,7 +339,10 @@ class PowerTreeExtraction:
             elif dcir_type == "dc_comp":
                 if G.degree[node_name] < 2:
                     continue
-                res = cir.modeler.schematic.create_resistor(comp_name, 0.001, [x, y])
+                refdes = G.nodes[node_name]["refdes"]
+                comp = self.netlist.components[refdes]
+                value = comp.value if not comp.type.capitalize() == "Inductor" else 0
+                res = cir.modeler.schematic.create_resistor(comp_name, value, [x, y])
                 n1, n2 = G.nodes[node_name]["net_name"]
                 cir.modeler.components.create_page_port(n1, res.pins[0].location, angle=180)
                 cir.modeler.components.create_page_port(n2, res.pins[1].location)
@@ -334,19 +377,3 @@ class PowerTreeExtraction:
             else:
                 color = 0
             cir.modeler.components.create_line([p1, p2], color)
-
-        aedt_name = self.edb_name.replace(".aedb", ".aedt")
-        aedt_path = os.path.join(self.output_folder, aedt_name)
-        edb_path = os.path.join(self.output_folder, self.edb_name)
-        aedt_result_path = aedt_path.replace("aedt", "aedtresults")
-        if os.path.isfile(aedt_path):
-            os.remove(aedt_path)
-        if os.path.isdir(edb_path):
-            shutil.rmtree(edb_path)
-        if os.path.isdir(aedt_result_path):
-            shutil.rmtree(aedt_result_path)
-
-        cir.save_project(aedt_path)
-        cir.close_project()
-        destop.release_desktop()
-        os.chdir(self.default_cwd)

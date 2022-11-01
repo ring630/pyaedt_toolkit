@@ -24,29 +24,67 @@ class DCIRAnalysis:
         if not os.path.isdir(self.output_folder):
             os.mkdir(self.output_folder)
 
-    def config_edb(self):
-        self.edbapp = Edb(self.edb_name, self.edb_version)
-        self.edbapp.core_components.import_definition(self.fname_comp_definition)
+    def remove_irrelevant_nets(self, edbapp):
+        _nets = [i for i in self.edbapp.core_nets.nets if i not in self.dcir_config.all_power_nets]
+        _nets.remove(self.gnd)
+        edbapp.core_nets.delete_nets(_nets)
 
+    def remove_gnd(self, edbapp):
+        edbapp.core_nets.delete_nets(self.gnd)
+
+    def config_edb(self, remove_irrelevant_nets=True, remove_gnd=False):
+        self.edbapp = Edb(self.edb_name, self.edb_version)
+        if remove_irrelevant_nets:
+            self.remove_irrelevant_nets(self.edbapp)
+        if remove_gnd:
+            self.remove_gnd(self.edbapp)
+
+        if self.fname_comp_definition:
+            self.edbapp.core_components.import_definition(self.fname_comp_definition)
+
+        comp_gnd_pg_name = {}
         for _, single_cfg in self.dcir_config.power_configs.items():
             for node_name, vcomp in single_cfg.v_comp.items():
-                self.edbapp.core_siwave.create_voltage_source_on_net(vcomp.refdes,
-                                                                     vcomp.net_name,
-                                                                     vcomp.refdes,
-                                                                     self.gnd,
-                                                                     vcomp.value,
-                                                                     0,
-                                                                     node_name
-                                                                     )
-            for node_name, icomp in single_cfg.v_comp.items():
-                self.edbapp.core_siwave.create_current_source_on_net(icomp.refdes,
-                                                                     icomp.net_name,
-                                                                     icomp.refdes,
-                                                                     self.gnd,
-                                                                     icomp.value,
-                                                                     0,
-                                                                     node_name
-                                                                     )
+                pg_gnd = "{}_{}".format(vcomp.refdes, self.gnd)
+                if not pg_gnd in list(comp_gnd_pg_name.values()):
+                    self.edbapp.core_siwave.create_pin_group_on_net(
+                        vcomp.refdes,
+                        self.gnd,
+                        pg_gnd,
+                    )
+                    comp_gnd_pg_name[vcomp.refdes] = pg_gnd
+
+                self.edbapp.core_siwave.create_pin_group(
+                    vcomp.refdes,
+                    vcomp.pin_list.split("-"),
+                    node_name
+                )
+                self.edbapp.core_siwave.create_voltage_source_on_pin_group(
+                    node_name,
+                    pg_gnd,
+                    vcomp.value,
+                )
+
+            for node_name, icomp in single_cfg.i_comp.items():
+                pg_gnd = "{}_{}".format(icomp.refdes, self.gnd)
+                if not pg_gnd in list(comp_gnd_pg_name.values()):
+                    self.edbapp.core_siwave.create_pin_group_on_net(
+                        icomp.refdes,
+                        self.gnd,
+                        pg_gnd,
+                    )
+                    comp_gnd_pg_name[icomp.refdes] = pg_gnd
+
+                self.edbapp.core_siwave.create_pin_group(
+                    icomp.refdes,
+                    icomp.pin_list.split("-"),
+                    node_name
+                )
+                self.edbapp.core_siwave.create_current_source_on_pin_group(
+                    node_name,
+                    pg_gnd,
+                    icomp.value,
+                )
         self.edbapp.core_siwave.add_siwave_dc_analysis()
         self.fpath_result_edb = os.path.join(self.output_folder, self.edb_name)
 
