@@ -1,0 +1,51 @@
+{
+  "edb_version": "2023.1",
+  "layout_file_name": "Galileo.aedb",
+  "comp_definition": "comp_definition.json",
+  "power_lib_file": "Galileo_power_lib.json",
+  "gnd_net_name": "GND",
+  "resistor_removal_threshold": 10,
+  "removal_list": [
+    "J1B1",
+    "J2B1"
+  ],
+  "power_configs": {
+    "0": {
+      "v_comp": {
+        "P5V0": {
+          "refdes": "J1",
+          "power_pin": 2,
+          "value": 5
+        }
+      }
+    },
+    "1": {
+      "v_comp":
+      {
+        "P1V0": {
+          "refdes": "U3A1",
+          "power_pin": 37,
+          "value": 1
+        }
+      }
+    },
+    "2": {
+      "v_comp": {
+        "P1V5": {
+          "refdes": "U3A1",
+          "power_pin": 16,
+          "value": 1.5
+        }
+      }
+    },
+    "3": {
+      "v_comp": {
+        "P3V3": {
+          "refdes": "U3A1",
+          "power_pin": 14,
+          "value": 3.3
+        }
+      }
+    }
+  }
+}

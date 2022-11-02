@@ -1,0 +1,36 @@
+{
+    "SParameterModel": {
+        "GRM32_DC0V_25degC_series": "C:/Users/hzhou/OneDrive - ANSYS, Inc/0_Jupyter/pyaedt_update_2022_11/models/GRM32_DC0V_25degC_series.s2p"
+    },
+    "SPICEModel": {
+        "GRM32_DC0V_25degC": "C:/Users/hzhou/OneDrive - ANSYS, Inc/0_Jupyter/pyaedt_update_2022_11/models/GRM32_DC0V_25degC.mod"
+    },
+    "Definitions": {
+        "602431-005": {
+            "Component_type": "Capacitor",
+            "Model_type": "RLC",
+            "Res": 1,
+            "Ind": 2,
+            "Cap": 3,
+            "Is_parallel": false
+        },
+        "602433-026": {
+            "Component_type": "Capacitor",
+            "Model_type": "SParameterModel",
+            "Model_name": "GRM32_DC0V_25degC_series"
+        },
+        "602433-038": {
+            "Component_type": "Capacitor",
+            "Model_type": "SPICEModel",
+            "Model_name": "GRM32_DC0V_25degC"
+        },
+        "A32422-019": {
+            "Component_type": "Resistor",
+            "Model_type": "RLC",
+            "Res": 0.1,
+            "Ind": 0,
+            "Cap": 0,
+            "Is_parallel": false
+        }
+    }
+}

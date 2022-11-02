@@ -199,13 +199,17 @@ class PowerTreeConfig:
                     if not isinstance(power_df, pd.DataFrame):
                         power_df = pd.DataFrame(comp_props, index=[comp_name])
                     else:
-                        power_df = power_df.append(pd.DataFrame(comp_props, index=[comp_name]))
+                        #power_df = power_df.append(pd.DataFrame(comp_props, index=[comp_name]))
+                        new_df = pd.DataFrame(comp_props, index=[comp_name])
+                        power_df = pd.concat([power_df, new_df])
 
                 for comp_name, comp_props in i_comp.items():
                     if not isinstance(power_df, pd.DataFrame):
                         power_df = pd.DataFrame(comp_props, index=[comp_name])
                     else:
-                        power_df = power_df.append(pd.DataFrame(comp_props, index=[comp_name]))
+                        #power_df = power_df.append(pd.DataFrame(comp_props, index=[comp_name]))
+                        new_df = pd.DataFrame(comp_props, index=[comp_name])
+                        power_df = pd.concat([power_df, new_df])
                 power_df.to_excel(writer, sheet_name=pname)
 
             custom_comps_df = None
@@ -219,7 +223,9 @@ class PowerTreeConfig:
                     if not custom_comps_df:
                         custom_comps_df = pd.DataFrame(temp, index=[str(i)])
                     else:
-                        custom_comps_df.append(pd.DataFrame(temp, index=[str(i)]))
+                        new_df = pd.DataFrame(temp, index=[str(i)])
+                        custom_comps_df = pd.concat([custom_comps_df, new_df])
+
                     i = i + 1
             if len(custom_comps_df):
                 custom_comps_df.to_excel(writer, sheet_name="custom_comps")
