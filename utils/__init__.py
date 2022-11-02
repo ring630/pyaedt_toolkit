@@ -1,3 +1,4 @@
+import time
 
 def str2float(des_type, val):
     if isinstance(val, float):
@@ -27,5 +28,5 @@ def str2float(des_type, val):
     return float(val)
 
 
-def json2xlsx(val):
-    pass
+def log_info(name):
+    print(time.ctime(), name)

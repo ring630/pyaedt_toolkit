@@ -27,13 +27,13 @@ def test_dcir_config():
 
 def test_dcir_power_tree_pdf():
     #app = PowerTreeExtraction(test_folder, "Galileo.json")
-    app = PowerTreeExtraction(test_folder, "Galileo.xlsx")
+    app = PowerTreeExtraction(test_folder, "vrm_cfg.xlsx")
     app.extract_power_tree(False)
 
 
 def test_dcir_power_tree_aedt():
     #app = PowerTreeExtraction(test_folder, "Galileo.json")
-    app = PowerTreeExtraction(test_folder, "Galileo.xlsx")
+    app = PowerTreeExtraction(test_folder, "vrm_cfg.xlsx")
     app.extract_power_tree(True)
 
 
@@ -41,5 +41,5 @@ def test_dcir_power_tree_aedt():
 def test_dcir_analysis():
     from pyaedt import Desktop
     #Desktop()
-    app = DCIRAnalysis(test_folder, r"extraction_result\Galileo.json")
+    app = DCIRAnalysis(test_folder, r"extraction_result\configuration.json")
     app.config_edb(remove_gnd=False)

@@ -2,8 +2,6 @@ import json
 
 import pandas as pd
 
-from . import json2xlsx
-
 
 class IVComp:
     def __init__(self, refdes=None, power_pin=None, value=None, net_name=None, part_name=None, pin_list=None):
@@ -88,14 +86,7 @@ class PowerTreeConfig:
         self.removal_list = []
         self.comp_definition = {}
         self.power_configs = {}
-        self.custom_comps = {
-            "example_refdes": {
-                "power_name": {
-                    "pin_list": "",
-                    "value": 0
-                }
-            }
-        }
+        self.custom_comps = {}
         self.all_power_nets = []
         if cfg_file_path.endswith(".json"):
             self.import_config_json(cfg_file_path)
@@ -230,12 +221,13 @@ class PowerTreeConfig:
                     else:
                         custom_comps_df.append(pd.DataFrame(temp, index=[str(i)]))
                     i = i + 1
-            custom_comps_df.to_excel(writer, sheet_name="custom_comps")
+            if len(custom_comps_df):
+                custom_comps_df.to_excel(writer, sheet_name="custom_comps")
 
     def import_config_excel(self, file_path):
         xls = pd.ExcelFile(file_path)
         for sheet_name in xls.sheet_names:
-            df = pd.read_excel(xls, sheet_name=sheet_name, header=None)
+            df = pd.read_excel(xls, sheet_name=sheet_name, header=None).fillna("")
             if sheet_name.lower() == "basic_info":
                 for i in df.values:
                     self.__dict__[i[0]] = i[1]
@@ -243,13 +235,13 @@ class PowerTreeConfig:
                 for i in df.values:
                     self.__dict__[sheet_name.lower()].append(i[1])
             elif sheet_name.lower() == "custom_comps":
-                df = pd.read_excel(xls, sheet_name=sheet_name)
+                df = pd.read_excel(xls, sheet_name=sheet_name).fillna("")
                 for _, i in df.iterrows():
                     self.__dict__[sheet_name.lower()][i.refdes] = {i.power_name: {
                         "pin_list": i.pin_list,
                         "value": i.value}}
             elif sheet_name.lower() == "vrm":
-                df = pd.read_excel(xls, sheet_name=sheet_name, index_col=0)
+                df = pd.read_excel(xls, sheet_name=sheet_name, index_col=0).fillna("")
 
                 for idx, i in df.iterrows():
                     data = {"v_comp": {}}
@@ -257,4 +249,4 @@ class PowerTreeConfig:
                     sp = SinglePowerConfig()
                     sp.import_dict(data)
                     self.power_configs[idx] = sp
-
+        return

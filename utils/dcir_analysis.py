@@ -1,5 +1,7 @@
 import os
 import shutil
+from . import log_info
+
 from pyaedt import Desktop, Edb, Hfss3dLayout
 from utils.configuration import PowerTreeConfig
 
@@ -33,15 +35,20 @@ class DCIRAnalysis:
         edbapp.core_nets.delete_nets(self.gnd)
 
     def config_edb(self, remove_irrelevant_nets=True, remove_gnd=False):
+        log_info("Loading EDB")
         self.edbapp = Edb(self.edb_name, self.edb_version)
+
         if remove_irrelevant_nets:
+            log_info("Removing irrelevant nets")
             self.remove_irrelevant_nets(self.edbapp)
         if remove_gnd:
+            log_info("Removing ground")
             self.remove_gnd(self.edbapp)
 
         if self.fname_comp_definition:
             self.edbapp.core_components.import_definition(self.fname_comp_definition)
 
+        log_info("Assigning sinks and sources.")
         comp_gnd_pg_name = {}
         for _, single_cfg in self.dcir_config.power_configs.items():
             for node_name, vcomp in single_cfg.v_comp.items():
@@ -94,6 +101,7 @@ class DCIRAnalysis:
         self.create_aedt()
 
     def create_aedt(self):
+        log_info("Creating aedt project.")
         aedt_path = self.fpath_result_edb.replace(".aedb", ".aedt")
         aedt_result_path = aedt_path.replace("aedt", "aedtresults")
         if os.path.isfile(aedt_path):

@@ -3,12 +3,13 @@ import shutil
 import itertools as it
 import matplotlib.pyplot as plt
 import networkx as nx
+
 from pyaedt import Desktop, Circuit, Edb
 
+from . import log_info
 from utils.configuration import PowerTreeConfig, IVComp
 from utils.edb_to_tel import EdbToNetlist
 from utils.netlist_process import NetList
-from utils.edb_process import EdbLayout
 
 
 class PowerTreeExtraction:
@@ -18,6 +19,7 @@ class PowerTreeExtraction:
     @property
     def power_network(self):
         if not len(self._PWR_NETWORK.nodes()):
+            log_info("Building power network")
             self._PWR_NETWORK = nx.Graph()
             net_comp_ratlist = {}
             for i in self.netlist.core_components.get_rats():
@@ -73,7 +75,6 @@ class PowerTreeExtraction:
         self.edb_version = str(self.dcir_cfg.edb_version)
         self.edb_name = self.dcir_cfg.layout_file_name
 
-
     def extract_power_tree(self, aedt_nexxim=False, pdf_figsize=(12, 8)):
         # Create netlist
         netlist_name = self.edb_name.replace(".aedb", ".tel")
@@ -81,14 +82,14 @@ class PowerTreeExtraction:
 
 
             if not os.path.isfile(netlist_name):
-                print("******* Netlist does not exist. Converting EDB to netlist...")
+                log_info("Loading EDB layout.")
                 edbapp = Edb(self.edb_name, edbversion=self.edb_version)
                 lines = EdbToNetlist(edbapp).lines
                 with open(netlist_name, "w") as f:
                     f.writelines(lines)
         else:
-            print("******* Netlist already exists.")
-
+            log_info("Netlist already exists.")
+        log_info("Loading netlist")
         self.netlist = NetList(netlist_name)
         if self.fname_comp_definition:
             self.netlist.import_comp_definition(self.fname_comp_definition)
@@ -115,8 +116,10 @@ class PowerTreeExtraction:
         if self.fname_power_lib:
             self.dcir_cfg.import_power_lib(self.fname_power_lib)
         self.dcir_cfg.custom_comp_overwrite()
-        self.dcir_cfg.export_config_json(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".json")))
-        self.dcir_cfg.export_config_excel(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".xlsx")))
+        #self.dcir_cfg.export_config_json(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".json")))
+        #self.dcir_cfg.export_config_excel(os.path.join(self.output_folder, self.edb_name.replace(".aedb", ".xlsx")))
+        self.dcir_cfg.export_config_json(os.path.join(self.output_folder, "configuration.json"))
+        self.dcir_cfg.export_config_excel(os.path.join(self.output_folder, "configuration.xlsx"))
 
         for k, g in graphs.items():
             single_cfg = self.dcir_cfg.power_configs[k]
@@ -132,7 +135,8 @@ class PowerTreeExtraction:
                 sub_graph, pos = g
                 self.visualize_power_tree_nexxim(sub_graph, pos, single_cfg, ratio=ratio*pdf_figsize[0]/12)
 
-            aedt_name = self.edb_name.replace(".aedb", ".aedt")
+            #aedt_name = self.edb_name.replace(".aedb", ".aedt")
+            aedt_name = "power_tree_in_nexxim.aedt"
             aedt_path = os.path.join(self.output_folder, aedt_name)
             edb_path = os.path.join(self.output_folder, self.edb_name)
             aedt_result_path = aedt_path.replace("aedt", "aedtresults")
