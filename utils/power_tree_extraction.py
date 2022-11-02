@@ -127,7 +127,7 @@ class PowerTreeExtraction:
             self.visualize_power_tree_pdf(sub_graph, pos, single_cfg, pdf_figsize)
 
         if aedt_nexxim:
-            non_graphical = False
+            non_graphical = True
             new_thread = True
             desktop = Desktop(self.edb_version, non_graphical, new_thread)
             for k, g in graphs.items():
