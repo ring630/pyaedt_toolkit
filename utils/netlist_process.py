@@ -3,6 +3,12 @@ import re
 from . import str2float
 
 
+class Pin:
+    def __init__(self, name, net_name):
+        self.name = name
+        self.net_name = net_name
+
+
 class CompDefinition:
     def __init__(self, cmp_type, part_name, value=""):
         self.type = cmp_type
@@ -20,6 +26,7 @@ class Component(CompDefinition):
         CompDefinition.__init__(self, cmp_type, part_name, value)
         self.refdes = refdes
         self.is_enabled = True
+        self.pins = []
 
 
 class NetList:
@@ -32,6 +39,7 @@ class NetList:
 
         self._get_rats_from_netlist()
         self._get_components_from_netlist()
+        self._add_component_pins()
 
     @property
     def core_components(self):
@@ -70,6 +78,18 @@ class NetList:
                     self.components[refdes] = Component(refdes, "capacitor", pn)
                 else:
                     self.components[refdes] = Component(refdes, "other", pn)
+
+    def _add_component_pins(self):
+        temp_rats = {i["refdes"][0]: i for i in self._rats}
+
+        for refdes, comp in self.components.items():
+            if refdes not in temp_rats:
+                continue
+            rat = temp_rats[refdes]
+            for idx, pin_name in enumerate(rat["pin_name"]):
+                pin = Pin(pin_name, rat["net_name"][idx])
+                comp.pins.append(pin)
+
 
     def import_bom(self):
         pass

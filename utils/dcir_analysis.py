@@ -29,17 +29,17 @@ class DCIRAnalysis:
     def remove_irrelevant_nets(self, edbapp):
         _nets = [i for i in self.edbapp.core_nets.nets if i not in self.dcir_config.all_power_nets]
         _nets.remove(self.gnd)
+        log_info("Removing irrelevant nets {}".format(len(_nets)))
         edbapp.core_nets.delete_nets(_nets)
 
     def remove_gnd(self, edbapp):
         edbapp.core_nets.delete_nets(self.gnd)
 
-    def config_edb(self, remove_irrelevant_nets=True, remove_gnd=False):
+    def config_edb(self, remove_irrelevant_nets=False, remove_gnd=False):
         log_info("Loading EDB")
         self.edbapp = Edb(self.edb_name, self.edb_version)
 
         if remove_irrelevant_nets:
-            log_info("Removing irrelevant nets")
             self.remove_irrelevant_nets(self.edbapp)
         if remove_gnd:
             log_info("Removing ground")

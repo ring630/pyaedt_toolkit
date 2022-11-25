@@ -34,7 +34,7 @@ def str2float(des_type, val):
 
 
 def log_info(name):
-    print(time.ctime(), name)
+    print("-->", time.ctime(), name)
 
 
 def get_galileo_exmaple_board():

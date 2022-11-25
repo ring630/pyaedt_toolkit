@@ -3,6 +3,7 @@ import shutil
 import itertools as it
 import matplotlib.pyplot as plt
 import networkx as nx
+import pandas as pd
 
 from pyaedt import Desktop, Circuit, Edb
 
@@ -66,6 +67,7 @@ class PowerTreeExtraction:
         self.default_cwd = os.getcwd()
         os.chdir(project_dir)
         self.netlist = None
+        self.problematic_comp_list = []
 
         self.dcir_cfg = PowerTreeConfig(fname_cfg)
 
@@ -75,7 +77,7 @@ class PowerTreeExtraction:
         self.edb_version = str(self.dcir_cfg.edb_version)
         self.edb_name = self.dcir_cfg.layout_file_name
 
-    def extract_power_tree(self, aedt_nexxim=False, pdf_figsize=(12, 8)):
+    def extract_power_tree(self, aedt_nexxim=False, pdf_figsize=(36, 24)):
         # Create netlist
         netlist_name = self.edb_name.replace(".aedb", ".tel")
         if self.dcir_cfg.layout_file_name.endswith(".aedb"):
@@ -85,6 +87,7 @@ class PowerTreeExtraction:
                 log_info("Loading EDB layout.")
                 edbapp = Edb(self.edb_name, edbversion=self.edb_version)
                 lines = EdbToNetlist(edbapp).lines
+                edbapp.close_edb()
                 with open(netlist_name, "w") as f:
                     f.writelines(lines)
         else:
@@ -104,6 +107,9 @@ class PowerTreeExtraction:
             os.mkdir(self.output_folder)
 
         self._run(aedt_nexxim, pdf_figsize)
+        self.export_problematic_comps(os.path.join(self.output_folder, "no_gnd_connect.csv"))
+        os.chdir(self.default_cwd)
+        log_info("Finished!")
 
     def _run(self, aedt_nexxim=False, pdf_figsize=(12, 8), ratio=0.3):
 
@@ -149,7 +155,6 @@ class PowerTreeExtraction:
 
             desktop.save_project(project_path=os.path.join(os.getcwd(), aedt_path))
             desktop.close_desktop()
-            os.chdir(self.default_cwd)
 
 
     def build_power_tree(self, single_cfg):
@@ -192,8 +197,13 @@ class PowerTreeExtraction:
                 sub_graph.nodes[node_name]["dcir_type"] = "sink"
                 sub_graph.nodes[node_name]["current"] = 0.001
                 refdes = attr["refdes"]
+
+                comp = self.netlist.components[refdes]
+                if self.dcir_cfg.gnd_net_name not in  [p.net_name for p in comp.pins]:
+                    self.problematic_comp_list.append(refdes)
+
                 i_comp = IVComp(refdes,
-                                part_name=self.netlist.components[refdes].part_name,
+                                part_name=comp.part_name,
                                 net_name=attr["net_name"],
                                 pin_list="-".join(attr["pin_list"]),
                                 value=0.001
@@ -302,20 +312,20 @@ class PowerTreeExtraction:
                 part_name = self.netlist.core_components.components[refdes].part_name
                 current = cfg.i_comp[n].value
                 txt = "{}\n{}\nCurrent={}\n".format(refdes, part_name, current)
-                ax.text(x, y, txt, color="g", fontsize=10, horizontalalignment="left")
+                ax.text(x, y, txt, color="g", fontsize=20, horizontalalignment="left")
 
             elif attr["dcir_type"] == "source":
                 txt = "{}\nVoltage={}\n".format(refdes, attr["voltage"])
-                ax.text(x, y, txt, color="r", fontsize=10, horizontalalignment="left")
+                ax.text(x, y, txt, color="r", fontsize=20, horizontalalignment="left")
 
             elif attr["dcir_type"] == "net":
                 txt = "{}".format(refdes)
-                ax.text(x, y, txt, fontsize=6, horizontalalignment="center")
+                ax.text(x, y, txt, fontsize=12, horizontalalignment="center")
 
             else:
                 comp = self.netlist.components[refdes]
                 txt = "{}-{}".format(refdes, comp.value)
-                ax.text(x, y, txt, fontsize=6, horizontalalignment="left",
+                ax.text(x, y, txt, fontsize=12, horizontalalignment="left",
                         bbox=dict(facecolor='none', edgecolor='black', pad=2.0))
 
         png_fpath = os.path.join(self.output_folder, cfg._node_name + ".png")
@@ -381,3 +391,8 @@ class PowerTreeExtraction:
             else:
                 color = 0
             cir.modeler.components.create_line([p1, p2], color)
+
+    def export_problematic_comps(self, file_path):
+        pd.Series(self.problematic_comp_list).to_csv(file_path)
+
+

@@ -12,4 +12,4 @@ cfg_file = os.path.basename(file_path)
 from utils.power_tree_extraction import PowerTreeExtraction
 
 app = PowerTreeExtraction(project_dir, cfg_file)
-app.extract_power_tree(False)
+app.extract_power_tree(aedt_nexxim=True, pdf_figsize=(48, 24))
