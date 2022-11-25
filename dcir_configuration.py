@@ -1,5 +1,5 @@
 import os
-from utils.dcir_analysis import DCIRAnalysis
+from dcir_power_tree.dcir_analysis import DCIRAnalysis
 
 import tkinter as tk
 from tkinter import filedialog

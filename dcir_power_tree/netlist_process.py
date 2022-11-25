@@ -1,6 +1,6 @@
 import json
 import re
-from . import str2float
+from utils import str2float
 
 
 class Pin:

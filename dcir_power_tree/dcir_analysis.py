@@ -1,9 +1,9 @@
 import os
 import shutil
-from . import log_info
+from utils import log_info
 
 from pyaedt import Desktop, Edb, Hfss3dLayout
-from utils.configuration import PowerTreeConfig
+from dcir_power_tree.configuration import PowerTreeConfig
 
 
 class DCIRAnalysis:

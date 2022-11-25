@@ -38,8 +38,8 @@ tel netlist. There are two classes
 # 2.1, PowerTreeTel exmaple
 
 ````python
-from utils.netlist_process import PowerTreeTel
-from utils.power_rail import PowerRail
+from dcir_power_tree.netlist_process import PowerTreeTel
+from dcir_power_tree import PowerRail
 
 # Define test point refdes naming convention
 PowerTreeTel.TP_PRIFIX = ["TP", "INC"]

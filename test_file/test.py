@@ -1,7 +1,7 @@
 import os
-from ..utils.configuration import SinglePowerConfig, PowerTreeConfig
-from ..utils.power_tree_extraction import PowerTreeExtraction
-from ..utils.dcir_analysis import DCIRAnalysis
+from dcir_power_tree import SinglePowerConfig, PowerTreeConfig
+from dcir_power_tree import PowerTreeExtraction
+from dcir_power_tree import DCIRAnalysis
 
 test_folder = r"C:\Users\hzhou\AppData\Roaming\JetBrains\PyCharmCE2022.1\scratches\power_tree_galileo"
 
@@ -39,7 +39,6 @@ def test_dcir_power_tree_aedt():
 
 """DCIR configuration"""
 def test_dcir_analysis():
-    from pyaedt import Desktop
     #Desktop()
     app = DCIRAnalysis(test_folder, r"extraction_result\configuration.json")
     app.config_edb(remove_gnd=False)

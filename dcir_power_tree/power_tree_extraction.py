@@ -7,10 +7,10 @@ import pandas as pd
 
 from pyaedt import Desktop, Circuit, Edb
 
-from . import log_info
-from utils.configuration import PowerTreeConfig, IVComp
-from utils.edb_to_tel import EdbToNetlist
-from utils.netlist_process import NetList
+from utils import log_info
+from dcir_power_tree.configuration import PowerTreeConfig, IVComp
+from dcir_power_tree.edb_to_tel import EdbToNetlist
+from dcir_power_tree.netlist_process import NetList
 
 
 class PowerTreeExtraction:
