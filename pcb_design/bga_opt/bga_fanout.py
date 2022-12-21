@@ -52,7 +52,9 @@ class BgaFanoutType1(Bench3DL):
         self.appedb.core_primitives.add_void(self.gnd_planes[self.sig_layer], sig_void.primitive_object)
         self.appedb.core_hfss.create_wave_port(sig.id, sig_path[-1], "wave_port", 50, 10, 10)
 
+        #self.appedb.core_nets.plot(None)
         self.save_edb_and_close(self.name)
+
 
 
 if __name__ == '__main__':
