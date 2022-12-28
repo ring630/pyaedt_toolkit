@@ -8,7 +8,7 @@ class DiffPairType1(Bench3DL):
             name="diff_pair_type_1",
             sig_layers=("TOP", "L4"),
             layer_count=8,
-            dielectric_thickness="100um",
+            dielectric_thickness="150um",
             work_dir=None):
         Bench3DL.__init__(self, work_dir)
         self.name = name
