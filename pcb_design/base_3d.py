@@ -13,15 +13,9 @@ class Bench3DL:
         self.y_limit_p = "3mm"
         self.y_limit_n = "-1mm"
 
-        self.appedb = Edb("test.aedb", edbversion="2022.2")
+        self.appedb = Edb(edbversion="2022.2")
 
-    def init_design(self, layer_count):
-        gnd_planes = self._create_board(layer_count)
-        self._init_variable()
-        self._init_padstack()
-        return gnd_planes
-
-    def _init_variable(self):
+    def add_default_variables(self):
         variables = {
             "$antipad_size": "1mm",
             "$drill_offset_x": "0mm",
@@ -31,7 +25,7 @@ class Bench3DL:
         for var, val in variables.items():
             self.appedb.add_design_variable(var, val)
 
-    def _init_padstack(self):
+    def add_default_padstacks(self):
         via_padstacks = {}
         via_padstacks["via_200"] = {"padstackname": "via_200",
                                     "holediam": "250um",
@@ -76,8 +70,8 @@ class Bench3DL:
         for via_name, props in via_padstacks.items():
             self.appedb.core_padstack.create_padstack(**props)
 
-    def _create_board(self, layer_count=2):
-        self.appedb.stackup.create_symmetric_stackup(layer_count)
+    def create_board(self, layer_count=2, dielectric_thickness="100um"):
+        self.appedb.stackup.create_symmetric_stackup(layer_count, dielectric_thickness=dielectric_thickness)
 
         # Create ground plane on every layer
         gnd_planes = {}

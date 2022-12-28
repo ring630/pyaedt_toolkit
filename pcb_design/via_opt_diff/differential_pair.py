@@ -3,11 +3,18 @@ from pcb_design.base_3d import Bench3DL
 
 class DiffPairType1(Bench3DL):
 
-    def __init__(self, name="diff_pair_type_1", sig_layers=("TOP", "L4"), layer_count=8, work_dir=None):
+    def __init__(
+            self,
+            name="diff_pair_type_1",
+            sig_layers=("TOP", "L4"),
+            layer_count=8,
+            dielectric_thickness="100um",
+            work_dir=None):
         Bench3DL.__init__(self, work_dir)
         self.name = name
         self.sig_layers = sig_layers
         self.layer_count = layer_count
+        self.dielectric_thickness = dielectric_thickness
         self.gnd_planes = None
 
     def run(self):
@@ -21,7 +28,10 @@ class DiffPairType1(Bench3DL):
         data = {
             0: ["GND", "SIG_P", "SIG_N", "GND"]
         }
-        self.gnd_planes = self.init_design(self.layer_count)
+        self.gnd_planes = self.create_board(self.layer_count, self.dielectric_thickness)
+        self.add_default_variables()
+        self.add_default_padstacks()
+
         self.gnd_planes[self.sig_layers[0]].delete()
         self.gnd_planes[self.sig_layers[1]].delete()
         for name, val in self.appedb.stackup.layers.items():
@@ -100,11 +110,21 @@ class DiffPairType1(Bench3DL):
 
         setup = self.appedb.create_hfss_setup("setup1")
 
-        # self.appedb.core_nets.plot(None)
-        self.save_edb_and_close(self.name)
+        setup.set_solution_multi_frequencies(("5GHz", "12.5GHz", "20GHz"))
+
+        setup.via_settings.via_num_sides = 12
+        setup.curve_approx_settings.arc_angle = "15deg"
+        setup.curve_approx_settings.max_arc_points = 16
+
+        sweep = setup.add_frequency_sweep("sweep1")
+        sweep.set_frequencies_linear_scale("5GHz", stop="20GHz", step="0.5GHz")
+        project_name = "_".join([self.name, self.sig_layers[0], self.sig_layers[-1]])
+        self.save_edb_and_close(project_name)
 
 
 if __name__ == '__main__':
-    DiffPairType1(layer_count=16,
-                  sig_layers=("TOP", "L6"),
-                  work_dir=r"C:\ansysdev\_aedt_workspace\pyaedt_pcb_design").run()
+    DiffPairType1(
+        sig_layers=("TOP", "L6"),
+        layer_count=8,
+        dielectric_thickness="200um",
+        work_dir=r"C:\ansysdev\_aedt_workspace\pyaedt_pcb_design").run()
